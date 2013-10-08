@@ -58,6 +58,9 @@ class DB(object):
         if self.catalog is not None:
             self.lenses = pyfits.getdata(self.catalog)
         
+        # No down-sampling has been done yet:
+        self.sample = None
+
         # Count lenses:
         try: self.Nlenses = len(self.lenses.LENSID)
         except: self.Nlenses = 0
@@ -198,9 +201,12 @@ class DB(object):
         try: os.remove(catalog)
         except OSError: pass
         
-        hdu = pyfits.new_table(self.lenses)
-        hdu.writeto(catalog)
-        if vb: print "om10.DB: written OM10 lens catalog to file at "+catalog
+        if self.sample is None:
+            pyfits.writeto(catalog,self.lenses)
+        else:
+            pyfits.writeto(catalog,self.sample)
+        
+        if vb: print "om10.DB: wrote catalog of ",self.Nlenses," OM10 lenses to file at "+catalog
         
         return
         
@@ -220,26 +226,34 @@ class DB(object):
         # Select all lenses that meet the rough observing criteria:
      
         try: 
-            sample = self.lenses[self.lenses.MAGI < maglim]
+            sample = self.lenses.copy()
+            sample = sample[sample.MAGI < maglim]
             sample = sample[sample.IMSEP > 0.67*IQ]
         except: 
             if vb: print "om10.DB: selection yields no lenses"
             return None
         
-        # Now compute expected number of lenses in survey:
+        # Compute expected number of lenses in survey:
         
-        N = int(len(sample) * (area / 20000.0) * 0.2)
+        if Nlens is None:
+            N = int(len(sample) * (area / 20000.0) * 0.2)
+        else:
+            N = Nlens
         if vb: print "om10.DB: selection yields ",N," lenses"
+        if N > len(sample):
+            print "om10.db: Warning: too few lenses in catalog, returning ",len(sample)," instead"
+            N = len(sample)
         
         # Shuffle sample and return only this, or the required, number of systems:
-        
-        if Nlens is not None: N = Nlens
         
         index = range(len(sample))
         numpy.random.shuffle(index)
         index = index[0:N]
         
-        return sample[index]
+        self.sample = sample[index]
+        self.Nlenses = len(self.sample)        
+        
+        return 
 
 # ======================================================================
 
@@ -254,7 +268,7 @@ if __name__ == '__main__':
 # To read in an old FITS catalog and look up one system:    
         
     db = om10.DB(catalog="data/qso_mock.fits")
-    
+ 
     id = 7176527
     lens = db.get_lens(id)
     
@@ -262,23 +276,27 @@ if __name__ == '__main__':
         print "Lens ",id," has zd,zs = ",lens.ZLENS[0],lens.ZSRC[0]
         print "and has images with magnifications: ",lens.MAG[0]
 
-# To select a mock sample lenses detectable with LSST at each epoch:
+# To select a mock sample of lenses detectable with LSST at each epoch:
 
-    lenses = db.select_random(maglim=23.3,area=20000.0,IQ=0.75)
-    if lenses is not None: 
-        print "LSST lenses, with zd = ",lenses.ZLENS
+    db.select_random(maglim=23.3,area=20000.0,IQ=0.75)
+    print db.Nlenses," LSST lenses, with zd = ",db.sample.ZLENS
+
+# To make a mock catalog of KIDS lenses:
+
+    # db.select_random(maglim=22.9,area=1500.0,IQ=0.7,Nlens=1e7)
+    db.select_random(maglim=22.9,area=1500.0,IQ=0.7)
+    db.write_table("OM10_KiDS_mock_lensed_quasars.fits")
 
 # To select 10 lenses detectable with PS1 at each epoch:
 
-    lenses = db.select_random(maglim=21.4,area=30000.0,IQ=1.0,Nlens=10)
-    if lenses is not None: 
-        print "10 representative PS1 3pi lenses, with zd = ",lenses.ZLENS
+    db.select_random(maglim=21.4,area=30000.0,IQ=1.0,Nlens=10)
+    print db.Nlenses," representative PS1 3pi lenses, with zd = ",db.sample.ZLENS
 
 # 10-sigma detection in a single epoch?
 # surveys = PS1-3PI PS1-MDS DES-WL KIDS  HSC-WIDE HSC-DEEP LSST  SDSS-S82x100
-# maglims = 21.4    23.3    23.6   24.9  24.9     25.3     23.3  21.3        
+# maglims = 21.4    23.3    23.6   22.9  24.9     25.3     23.3  21.3        
 # areas   = 30000   84      5000   1500  1500     30       20000 30000        # survey area in sq deg
-# psfs    = 1.0     1.0     0.9    0.75  0.75     0.75     0.75  1.4          # PSF FWHM in arcsec
+# psfs    = 1.0     1.0     0.9    0.7   0.75     0.75     0.75  1.4          # PSF FWHM in arcsec
 # Note that these numbers give lower yields that OM10, by about a factor of 2:
 # this is just due to the single epoch requirement, in the stacked images we 
 # should be able to go much deeper.
