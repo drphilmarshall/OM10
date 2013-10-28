@@ -1,6 +1,6 @@
 # ======================================================================
 
-import numpy,pyfits,sys,os
+import numpy,pyfits,sys,os,subprocess
 
 import om10
 
@@ -212,6 +212,70 @@ class DB(object):
         
     # ------------------------------------------------------------------
 
+    def export_to_cpt(self,pars,cptfile):
+    
+        try: os.remove(cptfile)
+        except OSError: pass
+        
+        if self.sample is None:
+            data = self.lenses
+        else:
+            data = self.sample
+                
+        # Define labels and ranges for cpt files:
+        labels = {}
+        ranges = {}
+        
+        labels['ZLENS']           = '$z_{\\rm d}$,  '
+        ranges['ZLENS']           = '0.0,2.5,    '
+
+        labels['ZSRC']            = '$z_{\\rm s}$,  '
+        ranges['ZSRC']            = '0.0,6.0,    '
+
+        labels['IMSEP']           = '$\\Delta \\theta / "$,  '
+        ranges['IMSEP']           = '0.0,5.0,    '
+
+        labels['APMAG_I']         = '$i_{\\rm d}$ / mag,  '
+        ranges['APMAG_I']         = '15.0,24.5,    '
+
+        labels['MAGI']            = '$i_{\\rm 2/3}$ / mag,  '
+        ranges['MAGI']            = '15.0,24.5,    '
+        
+
+        # Write header lines:
+        
+        hline1 = '# '
+        hline2 = '# '
+        for par in pars:
+            hline1 += labels[par]
+            hline2 += ranges[par]
+    
+        # Prepare data for writing:
+        
+        outbundle = numpy.zeros([self.Nlenses,len(pars)])
+    
+        for k,par in enumerate(pars):
+            outbundle[:,k] = data[par]
+    
+        # The actual writing:
+
+        output = open(cptfile,'w')
+        output.write("%s\n" % hline1)
+        output.write("%s\n" % hline2)
+        output.close()
+        numpy.savetxt('junk', outbundle)
+        cat = subprocess.call("cat junk >> " + cptfile, shell=True)
+        rm = subprocess.call("rm junk", shell=True)
+        if cat != 0 or rm != 0:
+          print "Error: write subprocesses failed in some way :-/"
+          sys.exit()
+
+        if vb: print "om10.DB: wrote a ",len(pars),"-column plain text file of ",len(data)," OM10 lenses to file at "+cptfile
+        
+        return
+        
+    # ------------------------------------------------------------------
+
     def get_lens(self,ID):    
         
         try: rec = self.lenses[self.lenses.LENSID == ID]
@@ -265,32 +329,79 @@ if __name__ == '__main__':
 # 
 #     db = om10.DB(generate=True)
     
-# To read in an old FITS catalog and look up one system:    
-        
-    db = om10.DB(catalog="data/qso_mock.fits")
+# # To read in an old FITS catalog 
+
+    db = om10.DB(catalog="../data/qso_mock.fits")
  
-    id = 7176527
-    lens = db.get_lens(id)
+
+# # Look up one system:    
+#         
+#     id = 7176527
+#     lens = db.get_lens(id)
+#     
+#     if lens is not None: 
+#         print "Lens ",id," has zd,zs = ",lens.ZLENS[0],lens.ZSRC[0]
+#         print "and has images with magnifications: ",lens.MAG[0]
+
+# # To select a mock sample of lenses detectable with LSST at each epoch:
+# 
+#     db.select_random(maglim=23.3,area=20000.0,IQ=0.75)
+#     print db.Nlenses," LSST lenses, with zd = ",db.sample.ZLENS
+
+# # To make a mock catalog of KIDS lenses:
+# 
+#     # db.select_random(maglim=22.9,area=1500.0,IQ=0.7,Nlens=1e7)
+#     db.select_random(maglim=22.9,area=1500.0,IQ=0.7)
+#     db.write_table("OM10_KiDS_mock_lensed_quasars.fits")
+
+# # To make a mock catalog of PS1 lenses:
+# 
+#     db.select_random(maglim=21.4,area=30000.0,IQ=1.0)
+#     db.write_table("OM10_PS1_mock_lensed_quasars.fits")
+# 
+# # and export them for plotting:
+#     
+#     pars = ['ZLENS','ZSRC','APMAG_I','MAGI','IMSEP']
+#     db.export_to_cpt(pars,"OM10_PS1_mock_lensed_quasars.cpt")
+
+# To make a mock catalog of DES lenses:
+
+    db.select_random(maglim=23.6,area=5000.0,IQ=0.9)
+    db.write_table("OM10_DES_mock_lensed_quasars.fits")
+
+# and export them for plotting:
     
-    if lens is not None: 
-        print "Lens ",id," has zd,zs = ",lens.ZLENS[0],lens.ZSRC[0]
-        print "and has images with magnifications: ",lens.MAG[0]
+    pars = ['ZLENS','APMAG_I','IMSEP']
+    db.export_to_cpt(pars,"OM10_DES_mock_lensed_quasars_lenses.cpt")
+    pars = ['ZSRC','MAGI','IMSEP']
+    db.export_to_cpt(pars,"OM10_DES_mock_lensed_quasars_sources.cpt")
+    pars = ['ZLENS','ZSRC','APMAG_I','MAGI','IMSEP']
+    db.export_to_cpt(pars,"OM10_DES_mock_lensed_quasars.cpt")
 
-# To select a mock sample of lenses detectable with LSST at each epoch:
+# # These files are designed to be plotted with CornerPlotter.py:
+# 
+# CornerPlotter.py \
+#   -o OM10_DES_mock_lensed_quasars_both.png \
+#   OM10_DES_mock_lensed_quasars_sources.cpt,blue,shaded \
+#   OM10_DES_mock_lensed_quasars_lenses.cpt,orange,shaded
+#   
+# CornerPlotter.py \
+#   -o OM10_DES_mock_lensed_quasars.png \
+#   OM10_DES_mock_lensed_quasars.cpt,black,shaded
+#  
+# CornerPlotter.py \
+#   -o OM10_PS1-vs-DES_mock_lensed_quasars.png \
+#   OM10_DES_mock_lensed_quasars.cpt,black,shaded \
+#   OM10_PS1_mock_lensed_quasars.cpt,blue,outlines
+  
+# This script is part of the pappy module, available from 
+#   http://github.com/drphilmarshall/pappy
 
-    db.select_random(maglim=23.3,area=20000.0,IQ=0.75)
-    print db.Nlenses," LSST lenses, with zd = ",db.sample.ZLENS
 
-# To make a mock catalog of KIDS lenses:
-
-    # db.select_random(maglim=22.9,area=1500.0,IQ=0.7,Nlens=1e7)
-    db.select_random(maglim=22.9,area=1500.0,IQ=0.7)
-    db.write_table("OM10_KiDS_mock_lensed_quasars.fits")
-
-# To select 10 lenses detectable with PS1 at each epoch:
-
-    db.select_random(maglim=21.4,area=30000.0,IQ=1.0,Nlens=10)
-    print db.Nlenses," representative PS1 3pi lenses, with zd = ",db.sample.ZLENS
+# # To select 10 lenses detectable with PS1 at each epoch:
+# 
+#     db.select_random(maglim=21.4,area=30000.0,IQ=1.0,Nlens=10)
+#     print db.Nlenses," representative PS1 3pi lenses, with zd = ",db.sample.ZLENS
 
 # 10-sigma detection in a single epoch?
 # surveys = PS1-3PI PS1-MDS DES-WL KIDS  HSC-WIDE HSC-DEEP LSST  SDSS-S82x100
