@@ -403,6 +403,11 @@ if __name__ == '__main__':
 #     db.select_random(maglim=21.4,area=30000.0,IQ=1.0,Nlens=10)
 #     print db.Nlenses," representative PS1 3pi lenses, with zd = ",db.sample.ZLENS
 
+# To make a mock catalog of DES lenses:
+
+    db.select_random(maglim=19.1,area=8000.0,IQ=1.4)
+    db.write_table("OM10_SQLS_mock_lensed_quasars.fits")
+
 # 10-sigma detection in a single epoch?
 # surveys = PS1-3PI PS1-MDS DES-WL KIDS  HSC-WIDE HSC-DEEP LSST  SDSS-S82x100
 # maglims = 21.4    23.3    23.6   22.9  24.9     25.3     23.3  21.3        
