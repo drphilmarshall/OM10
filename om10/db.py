@@ -266,8 +266,8 @@ if __name__ == '__main__':
 #     db = om10.DB(generate=True)
     
 # To read in an old FITS catalog and look up one system:    
-        
-    db = om10.DB(catalog="data/qso_mock.fits")
+            
+    db = om10.DB(catalog=os.path.expandvars("$OM10_DIR/data/qso_mock.fits"))
  
     id = 7176527
     lens = db.get_lens(id)
