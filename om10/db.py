@@ -319,6 +319,60 @@ class DB(object):
         
         return 
 
+    # ------------------------------------------------------------------
+
+    def get_LRGs(self,dmag=0.2,dz=0.2):    
+        
+        LRGfile = os.path.expandvars("$OM10_DIR/data/CFHTLS_LRGs.txt")
+        
+        try: d = numpy.loadtxt(LRGfile)
+        except: raise "ERROR: cannot find LRG catalog!"
+ 
+        if vb: print "om10.DB: read in LRG data from ",LRGfile
+
+        # Put LRG parameters in LRG structure:
+        
+        self.LRGs = {}
+        self.LRGs['redshift'] = numpy.array(d[:, 4])
+        self.LRGs['u_CFHTLS'] = numpy.array(d[:, 6])
+        self.LRGs['g_CFHTLS'] = numpy.array(d[:, 6])
+        self.LRGs['r_CFHTLS'] = numpy.array(d[:, 6])
+        self.LRGs['i_CFHTLS'] = numpy.array(d[:, 6])
+        self.LRGs['z_CFHTLS'] = numpy.array(d[:, 6])
+        
+        # Bin LRGs in i_CFHTLS and redshift, and record bin numbers for each one:
+
+        imin,imax = numpy.min(self.LRGs['i_CFHTLS']),numpy.max(self.LRGs['i_CFHTLS'])
+        nibins = int((imax - imin)/dmag) + 1
+        ibins = numpy.linspace(imin, imax, nibins)
+        self.LRGs['ii'] = numpy.digitize(self.LRGs['i_CFHTLS'],ibins)
+        self.LRGs['ibins'] = ibins
+
+        zmin,zmax = numpy.min(self.LRGs['redshift']),numpy.max(self.LRGs['redshift'])
+        nzbins = int((zmax - zmin)/dz) + 1
+        zbins = numpy.linspace(zmin, zmax, nzbins)
+        self.LRGs['iz'] = numpy.digitize(self.LRGs['redshift'],zbins)
+        self.LRGs['zbins'] = zbins
+
+        return 
+
+    # ------------------------------------------------------------------
+
+    def match_LRGs(self):    
+        
+        # First digitize the lenses to the same bins as the LRGs:
+
+        ii = numpy.digitize(self.lenses.APMAG_I,self.LRGs['ibins'])
+        iz = numpy.digitize(self.lenses.ZLENS,self.LRGs['zbins'])
+        
+        # Loop over lenses, finding all LRGs in its bin:
+
+        for k in range(self.Nlenses):
+            index = numpy.where(self.LRGs['ii'] == ii[k] and self.LRGs['iz'] == iz[k])
+            print "Lens ",k," has neighbour LRGs with indices: ",index
+
+        return 
+
 # ======================================================================
 
 if __name__ == '__main__':
@@ -329,10 +383,18 @@ if __name__ == '__main__':
 # 
 #     db = om10.DB(generate=True)
     
-# # To read in an old FITS catalog 
+# To read in an old FITS catalog:    
+            
+    db = om10.DB(catalog=os.path.expandvars("$OM10_DIR/data/qso_mock.fits"))
 
-    db = om10.DB(catalog="../data/qso_mock.fits")
+# Get one lens:
  
+#     id = 7176527
+#     lens = db.get_lens(id)
+    
+#     if lens is not None: 
+#         print "Lens ",id," has zd,zs = ",lens.ZLENS[0],lens.ZSRC[0]
+#         print "and has images with magnifications: ",lens.MAG[0]
 
 # # Look up one system:    
 #         
@@ -353,10 +415,10 @@ if __name__ == '__main__':
 #     db.select_random(maglim=23.3,area=20000.0,IQ=0.75)
 #     print db.Nlenses," LSST lenses, with zd = ",db.sample.ZLENS
 
-# # To select 10 lenses detectable with PS1 at each epoch:
-# 
-#     db.select_random(maglim=21.4,area=30000.0,IQ=1.0,Nlens=10)
-#     print db.Nlenses," representative PS1 3pi lenses, with zd = ",db.sample.ZLENS
+# To select 10 lenses detectable with PS1 at each epoch:
+
+    db.select_random(maglim=21.4,area=30000.0,IQ=1.0,Nlens=10)
+    print db.Nlenses," representative PS1 3pi lenses, with zd = ",db.sample.ZLENS
 
 # # To make a mock catalog of KIDS lenses:
 # 
@@ -374,24 +436,24 @@ if __name__ == '__main__':
 #     pars = ['ZLENS','ZSRC','APMAG_I','MAGI','IMSEP']
 #     db.export_to_cpt(pars,"OM10_PS1_mock_lensed_quasars.cpt")
 
-# To make a mock catalog of DES lenses:
+# To make a mock catalog of LSST lenses:
 
-    db.select_random(maglim=23.6,area=5000.0,IQ=0.9)
-    db.write_table("OM10_DES_mock_lensed_quasars.fits")
+#     db.select_random(maglim=23.3,area=20000.0,IQ=0.75)
+#     print db.Nlenses," LSST lenses, with zd = ",db.sample.ZLENS
 
 # To make a mock catalog of DES time delay lenses:
-
-    db.select_random(maglim=18.0,area=5000.0,IQ=0.9)
-    db.write_table("OM10_DES_mock_time-delay_lensed_quasars.fits")
+# 
+#     db.select_random(maglim=18.0,area=5000.0,IQ=0.9)
+#     db.write_table("OM10_DES_mock_time-delay_lensed_quasars.fits")
 
 # and export them for plotting:
-    
-    pars = ['ZLENS','APMAG_I','IMSEP']
-    db.export_to_cpt(pars,"OM10_DES_mock_lensed_quasars_lenses.cpt")
-    pars = ['ZSRC','MAGI','IMSEP']
-    db.export_to_cpt(pars,"OM10_DES_mock_lensed_quasars_sources.cpt")
-    pars = ['ZLENS','ZSRC','APMAG_I','MAGI','IMSEP']
-    db.export_to_cpt(pars,"OM10_DES_mock_lensed_quasars.cpt")
+#     
+#     pars = ['ZLENS','APMAG_I','IMSEP']
+#     db.export_to_cpt(pars,"OM10_DES_mock_lensed_quasars_lenses.cpt")
+#     pars = ['ZSRC','MAGI','IMSEP']
+#     db.export_to_cpt(pars,"OM10_DES_mock_lensed_quasars_sources.cpt")
+#     pars = ['ZLENS','ZSRC','APMAG_I','MAGI','IMSEP']
+#     db.export_to_cpt(pars,"OM10_DES_mock_lensed_quasars.cpt")
 
 # # These files are designed to be plotted with CornerPlotter.py:
 # 
@@ -411,6 +473,16 @@ if __name__ == '__main__':
   
 # This script is part of the pappy module, available from 
 #   http://github.com/drphilmarshall/pappy
+
+
+# Read in LRGs from CFHTLS:
+
+    db.get_LRGs()
+
+# Associate LRGs with sample - this appends the CFHTLS magnitudes in all filters to each lens,
+# based on the i magnitude and redshift:
+
+    db.match_LRGs()
 
 
 # 10-sigma detection in a single epoch?

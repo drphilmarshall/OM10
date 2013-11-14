@@ -1,5 +1,8 @@
 *.py[cod]
 
+# Data files
+*.fits
+
 # C extensions
 *.so
 
