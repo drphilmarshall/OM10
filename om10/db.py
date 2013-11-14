@@ -343,10 +343,20 @@ if __name__ == '__main__':
 #         print "Lens ",id," has zd,zs = ",lens.ZLENS[0],lens.ZSRC[0]
 #         print "and has images with magnifications: ",lens.MAG[0]
 
-# # To select a mock sample of lenses detectable with LSST at each epoch:
+# # To make a mock catalog of SDSS lenses:
+# 
+#     db.select_random(maglim=19.1,area=8000.0,IQ=1.4)
+#     db.write_table("OM10_SQLS_mock_lensed_quasars.fits")
+
+# # To select a mock catalog of LSST lenses:
 # 
 #     db.select_random(maglim=23.3,area=20000.0,IQ=0.75)
 #     print db.Nlenses," LSST lenses, with zd = ",db.sample.ZLENS
+
+# # To select 10 lenses detectable with PS1 at each epoch:
+# 
+#     db.select_random(maglim=21.4,area=30000.0,IQ=1.0,Nlens=10)
+#     print db.Nlenses," representative PS1 3pi lenses, with zd = ",db.sample.ZLENS
 
 # # To make a mock catalog of KIDS lenses:
 # 
@@ -368,6 +378,11 @@ if __name__ == '__main__':
 
     db.select_random(maglim=23.6,area=5000.0,IQ=0.9)
     db.write_table("OM10_DES_mock_lensed_quasars.fits")
+
+# To make a mock catalog of DES time delay lenses:
+
+    db.select_random(maglim=18.0,area=5000.0,IQ=0.9)
+    db.write_table("OM10_DES_mock_time-delay_lensed_quasars.fits")
 
 # and export them for plotting:
     
@@ -397,16 +412,6 @@ if __name__ == '__main__':
 # This script is part of the pappy module, available from 
 #   http://github.com/drphilmarshall/pappy
 
-
-# # To select 10 lenses detectable with PS1 at each epoch:
-# 
-#     db.select_random(maglim=21.4,area=30000.0,IQ=1.0,Nlens=10)
-#     print db.Nlenses," representative PS1 3pi lenses, with zd = ",db.sample.ZLENS
-
-# To make a mock catalog of DES lenses:
-
-    db.select_random(maglim=19.1,area=8000.0,IQ=1.4)
-    db.write_table("OM10_SQLS_mock_lensed_quasars.fits")
 
 # 10-sigma detection in a single epoch?
 # surveys = PS1-3PI PS1-MDS DES-WL KIDS  HSC-WIDE HSC-DEEP LSST  SDSS-S82x100
