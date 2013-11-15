@@ -2,6 +2,8 @@
 
 import numpy,pyfits,sys,os,subprocess
 
+# from astropy.table import Table
+
 import om10
 
 vb = True
@@ -32,6 +34,7 @@ class DB(object):
         write_table(file)  Write out a new FITS table to file
         
     BUGS
+      - LRG properties have not been added to table!
 
     AUTHORS
       This file is part of the OM10 project, distributed under the
@@ -57,6 +60,8 @@ class DB(object):
         # If given a catalog, read it in:
         if self.catalog is not None:
             self.lenses = pyfits.getdata(self.catalog)
+            # self.lenses = Table.read(self.catalog,format='fits')
+            # print self.lenses
         
         # No down-sampling has been done yet:
         self.sample = None
@@ -333,12 +338,14 @@ class DB(object):
         # Put LRG parameters in LRG structure:
         
         self.LRGs = {}
-        self.LRGs['redshift'] = numpy.array(d[:, 4])
-        self.LRGs['u_CFHTLS'] = numpy.array(d[:, 6])
-        self.LRGs['g_CFHTLS'] = numpy.array(d[:, 6])
-        self.LRGs['r_CFHTLS'] = numpy.array(d[:, 6])
+        self.LRGs['RA']       = numpy.array(d[:, 0])
+        self.LRGs['DEC']      = numpy.array(d[:, 1])
+        self.LRGs['redshift'] = numpy.array(d[:, 2])
+        self.LRGs['u_CFHTLS'] = numpy.array(d[:, 3])
+        self.LRGs['g_CFHTLS'] = numpy.array(d[:, 4])
+        self.LRGs['r_CFHTLS'] = numpy.array(d[:, 5])
         self.LRGs['i_CFHTLS'] = numpy.array(d[:, 6])
-        self.LRGs['z_CFHTLS'] = numpy.array(d[:, 6])
+        self.LRGs['z_CFHTLS'] = numpy.array(d[:, 7])
         
         # Bin LRGs in i_CFHTLS and redshift, and record bin numbers for each one:
 
@@ -353,6 +360,8 @@ class DB(object):
         zbins = numpy.linspace(zmin, zmax, nzbins)
         self.LRGs['iz'] = numpy.digitize(self.LRGs['redshift'],zbins)
         self.LRGs['zbins'] = zbins
+        
+        if vb: print "om10.DB: number of LRGs stored = ",len(self.LRGs['redshift'])
 
         return 
 
@@ -360,6 +369,19 @@ class DB(object):
 
     def match_LRGs(self):    
         
+        # Prepare new columns for LRG properties:
+        size = len(self.lenses.LENSID)
+        
+        # BUG: the following does not work, for some reason - 
+        # lenses is not a list, its a pyfits table of some kind...
+        # self.lenses.append(pyfits.Column(name='RA      ',format='D       ',array=numpy.zeros([size])))
+        # self.lenses.append(pyfits.Column(name='DEC     ',format='D       ',array=numpy.zeros([size])))
+        # self.lenses.append(pyfits.Column(name='uMAG_LRG',format='D       ',array=numpy.zeros([size])))
+        # self.lenses.append(pyfits.Column(name='gMAG_LRG',format='D       ',array=numpy.zeros([size])))
+        # self.lenses.append(pyfits.Column(name='rMAG_LRG',format='D       ',array=numpy.zeros([size])))
+        # self.lenses.append(pyfits.Column(name='iMAG_LRG',format='D       ',array=numpy.zeros([size])))
+        # self.lenses.append(pyfits.Column(name='zMAG_LRG',format='D       ',array=numpy.zeros([size])))
+       
         # First digitize the lenses to the same bins as the LRGs:
 
         ii = numpy.digitize(self.lenses.APMAG_I,self.LRGs['ibins'])
@@ -367,10 +389,43 @@ class DB(object):
         
         # Loop over lenses, finding all LRGs in its bin:
 
-        for k in range(self.Nlenses):
-            index = numpy.where(self.LRGs['ii'] == ii[k] and self.LRGs['iz'] == iz[k])
-            print "Lens ",k," has neighbour LRGs with indices: ",index
-
+        for k in range(len(self.lenses)):
+            iindex = list(numpy.where(self.LRGs['ii'] == ii[k])[0])
+            zindex = list(numpy.where(self.LRGs['iz'] == iz[k])[0])
+            i = list(set(iindex).intersection(set(zindex)))
+            
+            if len(i) == 0:
+                print "WARNING: Lens ",k," has no matching LRGs, skipping..."
+                # self.lenses.RA[k]       = -99
+                # self.lenses.DEC[k]      = -99
+                # self.lenses.uMAG_LRG[k] = -99
+                # self.lenses.gMAG_LRG[k] = -99
+                # self.lenses.rMAG_LRG[k] = -99
+                # self.lenses.iMAG_LRG[k] = -99
+                # self.lenses.zMAG_LRG[k] = -99
+                pass
+            
+            else:
+                print "Lens ",k," has ",len(i)," neighbour LRGs... "
+                
+                # Compute distances to find nearest neighbour:
+                i0 = self.lenses.APMAG_I[k]
+                z0 = self.lenses.ZLENS[k]
+                R = numpy.sqrt((self.LRGs['i_CFHTLS'][i]-i0)**2 + (self.LRGs['redshift'][i])**2)
+                best = numpy.where(R == numpy.min(R))
+                ibest = i[best[0][0]]
+                
+                print "  LRG  i,z: ",self.LRGs['i_CFHTLS'][ibest],self.LRGs['redshift'][ibest]
+                print "  Lens i,z: ",self.lenses.APMAG_I[k],self.lenses.ZLENS[k]
+                
+                # self.lenses.RA[k]       = self.LRGs['RA'][ibest]
+                # self.lenses.DEC[k]      = self.LRGs['DEC'][ibest]
+                # self.lenses.uMAG_LRG[k] = self.LRGs['u_CFHTLS'][ibest]
+                # self.lenses.gMAG_LRG[k] = self.LRGs['g_CFHTLS'][ibest]
+                # self.lenses.rMAG_LRG[k] = self.LRGs['r_CFHTLS'][ibest]
+                # self.lenses.iMAG_LRG[k] = self.LRGs['i_CFHTLS'][ibest]
+                # self.lenses.zMAG_LRG[k] = self.LRGs['z_CFHTLS'][ibest]
+            
         return 
 
 # ======================================================================
@@ -414,11 +469,6 @@ if __name__ == '__main__':
 # 
 #     db.select_random(maglim=23.3,area=20000.0,IQ=0.75)
 #     print db.Nlenses," LSST lenses, with zd = ",db.sample.ZLENS
-
-# To select 10 lenses detectable with PS1 at each epoch:
-
-    db.select_random(maglim=21.4,area=30000.0,IQ=1.0,Nlens=10)
-    print db.Nlenses," representative PS1 3pi lenses, with zd = ",db.sample.ZLENS
 
 # # To make a mock catalog of KIDS lenses:
 # 
@@ -483,6 +533,15 @@ if __name__ == '__main__':
 # based on the i magnitude and redshift:
 
     db.match_LRGs()
+
+# To select 10 lenses detectable with PS1 at each epoch:
+
+    db.select_random(maglim=21.4,area=30000.0,IQ=1.0,Nlens=10)
+    print db.Nlenses," representative PS1 3pi lenses, with zd = ", \
+      db.sample.ZLENS
+    # print "ugriz = ", \
+    #   db.sample.uMAG_LRG,db.sample.gMAG_LRG,db.sample.rMAG_LRG, \
+    #   db.sample.iMAG_LRG,db.sample.zMAG_LRG
 
 
 # 10-sigma detection in a single epoch?
