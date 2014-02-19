@@ -141,11 +141,11 @@ class Imager(object):
         self.xpsf,self.ypsf = numpy.mgrid[0:self.psfsize,0:self.psfsize]
         self.pixpsf=conv*self.meanIQ/self.pixscale
         
-        self.psf = (9./16.)G(self.xpsf-self.midpsf,self.pixpsf)G(self.ypsf-self.midpsf,self.pixpsf)+
-        +(3./32.)(G(self.xpsf-self.midpsf-1,self.pixpsf)G(self.ypsf-self.midpsf,self.pixpsf)+G(self.xpsf-self.midpsf+1,self.pixpsf)G(self.ypsf-self.midpsf,self.pixpsf)
-        +G(self.xpsf-self.midpsf,self.pixpsf)G(self.ypsf-self.midpsf-1,self.pixpsf)+G(self.xpsf-self.midpsf,self.pixpsf)G(self.ypsf-self.midpsf+1,self.pixpsf))
-        +(1/64)(G(self.xpsf-self.midpsf-1,self.pixpsf)G(self.ypsf-self.midpsf-1,self.pixpsf)+G(self.xpsf-self.midpsf-1,self.pixpsf)G(self.ypsf-self.midpsf+1,self.pixpsf)
-        +G(self.xpsf-self.midpsf+1,self.pixpsf)G(self.ypsf-self.midpsf-1,self.pixpsf)+G(self.xpsf-self.midpsf+1,self.pixpsf)G(self.ypsf-self.midpsf+1,self.pixpsf))
+        self.psf = (9./16.)*G(self.xpsf-self.midpsf,self.pixpsf)*G(self.ypsf-self.midpsf,self.pixpsf)+
+        +(3./32.)*(G(self.xpsf-self.midpsf-1,self.pixpsf)*G(self.ypsf-self.midpsf,self.pixpsf)+G(self.xpsf-self.midpsf+1,self.pixpsf)*G(self.ypsf-self.midpsf,self.pixpsf)
+        +G(self.xpsf-self.midpsf,self.pixpsf)*G(self.ypsf-self.midpsf-1,self.pixpsf)+*G(self.xpsf-self.midpsf,self.pixpsf)*G(self.ypsf-self.midpsf+1,self.pixpsf))
+        +(1/64)*(G(self.xpsf-self.midpsf-1,self.pixpsf)*G(self.ypsf-self.midpsf-1,self.pixpsf)+G(self.xpsf-self.midpsf-1,self.pixpsf)*G(self.ypsf-self.midpsf+1,self.pixpsf)
+        +G(self.xpsf-self.midpsf+1,self.pixpsf)*G(self.ypsf-self.midpsf-1,self.pixpsf)+G(self.xpsf-self.midpsf+1,self.pixpsf)*G(self.ypsf-self.midpsf+1,self.pixpsf))
 
         return
         
