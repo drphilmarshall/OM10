@@ -117,10 +117,10 @@ class Imager(object):
         
     # define interpolated psf grid, used in convolutions and point sources;
     # this is an array psfsize*psfsize!
-        self.psf = (9./16.)G(self.xpsf-self.midpsf,self.pixpsf)G(self.ypsf-self.midpsf,self.pixpsf)+
-        +(3./32.)(G(self.xpsf-self.midpsf-1,self.pixpsf)G(self.ypsf-self.midpsf,self.pixpsf)+G(self.xpsf-self.midpsf+1,self.pixpsf)G(self.ypsf-self.midpsf,self.pixpsf)
+        self.psf = (9./16.)*G(self.xpsf-self.midpsf,self.pixpsf)G(self.ypsf-self.midpsf,self.pixpsf)+
+        +(3./32.)*(G(self.xpsf-self.midpsf-1,self.pixpsf)G(self.ypsf-self.midpsf,self.pixpsf)+G(self.xpsf-self.midpsf+1,self.pixpsf)G(self.ypsf-self.midpsf,self.pixpsf)
         +G(self.xpsf-self.midpsf,self.pixpsf)G(self.ypsf-self.midpsf-1,self.pixpsf)+G(self.xpsf-self.midpsf,self.pixpsf)G(self.ypsf-self.midpsf+1,self.pixpsf))
-        +(1/64)(G(self.xpsf-self.midpsf-1,self.pixpsf)G(self.ypsf-self.midpsf-1,self.pixpsf)+G(self.xpsf-self.midpsf-1,self.pixpsf)G(self.ypsf-self.midpsf+1,self.pixpsf)
+        +(1/64)*(G(self.xpsf-self.midpsf-1,self.pixpsf)G(self.ypsf-self.midpsf-1,self.pixpsf)+G(self.xpsf-self.midpsf-1,self.pixpsf)G(self.ypsf-self.midpsf+1,self.pixpsf)
         +G(self.xpsf-self.midpsf+1,self.pixpsf)G(self.ypsf-self.midpsf-1,self.pixpsf)+G(self.xpsf-self.midpsf+1,self.pixpsf)G(self.ypsf-self.midpsf+1,self.pixpsf))
 
         return
