@@ -11,6 +11,7 @@ vb = True
 
 conv = 1./(numpy.log(2.)*(2**0.5))
 from numpy import exp, sin, cos
+magicmag = 19.
 
 def G(x,dx):
     gau = exp(-0.5*(x/dx)**2.)/(dx*(2.*numpy.pi)**0.5)
@@ -117,11 +118,11 @@ class Imager(object):
         
     # define interpolated psf grid, used in convolutions and point sources;
     # this is an array psfsize*psfsize!
-        self.psf = (9./16.)*G(self.xpsf-self.midpsf,self.pixpsf)G(self.ypsf-self.midpsf,self.pixpsf)+
-        +(3./32.)*(G(self.xpsf-self.midpsf-1,self.pixpsf)G(self.ypsf-self.midpsf,self.pixpsf)+G(self.xpsf-self.midpsf+1,self.pixpsf)G(self.ypsf-self.midpsf,self.pixpsf)
-        +G(self.xpsf-self.midpsf,self.pixpsf)G(self.ypsf-self.midpsf-1,self.pixpsf)+G(self.xpsf-self.midpsf,self.pixpsf)G(self.ypsf-self.midpsf+1,self.pixpsf))
-        +(1/64)*(G(self.xpsf-self.midpsf-1,self.pixpsf)G(self.ypsf-self.midpsf-1,self.pixpsf)+G(self.xpsf-self.midpsf-1,self.pixpsf)G(self.ypsf-self.midpsf+1,self.pixpsf)
-        +G(self.xpsf-self.midpsf+1,self.pixpsf)G(self.ypsf-self.midpsf-1,self.pixpsf)+G(self.xpsf-self.midpsf+1,self.pixpsf)G(self.ypsf-self.midpsf+1,self.pixpsf))
+        self.psf = (9./16.)*G(self.xpsf-self.midpsf,self.pixpsf)*G(self.ypsf-self.midpsf,self.pixpsf)
+        + (3./32.)*(G(self.xpsf-self.midpsf-1,self.pixpsf)*G(self.ypsf-self.midpsf,self.pixpsf) + G(self.xpsf-self.midpsf+1,self.pixpsf)*G(self.ypsf-self.midpsf,self.pixpsf)
+        + G(self.xpsf-self.midpsf,self.pixpsf)*G(self.ypsf-self.midpsf-1,self.pixpsf) + G(self.xpsf-self.midpsf,self.pixpsf)*G(self.ypsf-self.midpsf+1,self.pixpsf))
+        + (1/64)*(G(self.xpsf-self.midpsf-1,self.pixpsf)*G(self.ypsf-self.midpsf-1,self.pixpsf) + G(self.xpsf-self.midpsf-1,self.pixpsf)*G(self.ypsf-self.midpsf+1,self.pixpsf)
+        + G(self.xpsf-self.midpsf+1,self.pixpsf)*G(self.ypsf-self.midpsf-1,self.pixpsf) + G(self.xpsf-self.midpsf+1,self.pixpsf)*G(self.ypsf-self.midpsf+1,self.pixpsf))
 
         return
         
@@ -141,11 +142,11 @@ class Imager(object):
         self.xpsf,self.ypsf = numpy.mgrid[0:self.psfsize,0:self.psfsize]
         self.pixpsf=conv*self.meanIQ/self.pixscale
         
-        self.psf = (9./16.)*G(self.xpsf-self.midpsf,self.pixpsf)*G(self.ypsf-self.midpsf,self.pixpsf)+
-        +(3./32.)*(G(self.xpsf-self.midpsf-1,self.pixpsf)*G(self.ypsf-self.midpsf,self.pixpsf)+G(self.xpsf-self.midpsf+1,self.pixpsf)*G(self.ypsf-self.midpsf,self.pixpsf)
-        +G(self.xpsf-self.midpsf,self.pixpsf)*G(self.ypsf-self.midpsf-1,self.pixpsf)+*G(self.xpsf-self.midpsf,self.pixpsf)*G(self.ypsf-self.midpsf+1,self.pixpsf))
-        +(1/64)*(G(self.xpsf-self.midpsf-1,self.pixpsf)*G(self.ypsf-self.midpsf-1,self.pixpsf)+G(self.xpsf-self.midpsf-1,self.pixpsf)*G(self.ypsf-self.midpsf+1,self.pixpsf)
-        +G(self.xpsf-self.midpsf+1,self.pixpsf)*G(self.ypsf-self.midpsf-1,self.pixpsf)+G(self.xpsf-self.midpsf+1,self.pixpsf)*G(self.ypsf-self.midpsf+1,self.pixpsf))
+        self.psf = (9./16.)*G(self.xpsf-self.midpsf,self.pixpsf)*G(self.ypsf-self.midpsf,self.pixpsf) 
+        + (3./32.)*(G(self.xpsf-self.midpsf-1,self.pixpsf)*G(self.ypsf-self.midpsf,self.pixpsf) + G(self.xpsf-self.midpsf+1,self.pixpsf)*G(self.ypsf-self.midpsf,self.pixpsf)
+        + G(self.xpsf-self.midpsf,self.pixpsf)*G(self.ypsf-self.midpsf-1,self.pixpsf) + G(self.xpsf-self.midpsf,self.pixpsf)*G(self.ypsf-self.midpsf+1,self.pixpsf))
+        + (1/64)*(G(self.xpsf-self.midpsf-1,self.pixpsf)*G(self.ypsf-self.midpsf-1,self.pixpsf) + G(self.xpsf-self.midpsf-1,self.pixpsf)*G(self.ypsf-self.midpsf+1,self.pixpsf)
+        + G(self.xpsf-self.midpsf+1,self.pixpsf)*G(self.ypsf-self.midpsf-1,self.pixpsf) + G(self.xpsf-self.midpsf+1,self.pixpsf)*G(self.ypsf-self.midpsf+1,self.pixpsf))
 
         return
         
@@ -181,7 +182,8 @@ class Imager(object):
         for k in range(Nepochs):
             
             # Make raw image
-            lgalflux = # in nano-maggies, set it from the bla-band magnitude read from target
+            lgalflux = 10.^(0.4*magicmag)# in nano-maggies, set it from the bla-band magnitude read from target
+            # magicmag is there jsut to make it flow
             reff=self.Re/self.pixscale
             # normalisation: central flux in nanomaggies/pixscale^2
             S0 = lgalflux/sernorm(reff,n)
@@ -191,15 +193,15 @@ class Imager(object):
             # alternative without nested for loop highly desirable!
             # numpy.fft would avoid that and not invoke scipy
 
-            for i in range(0,self.imsize-1)
-                for j in range(0,self.imsize-1)
-                    for i1 in range(0,psfsize-1)
-                        for i2 in range(0,psfsize-1)
+            for i in range(0,self.imsize-1):
+                for j in range(0,self.imsize-1):
+                    for i1 in range(0,psfsize-1):
+                        for i2 in range(0,psfsize-1):
                             self.lens_galaxy_image += self.sbraw[i+i1,j+i2]*self.psf[i1,i2]
             
             # Paint in point-source PSFs:
 
-            for kq in range(quasims-1)
+            for kq in range(quasims-1):
                 ipos = int(self.qim[kq][1]/self.pixscale + self.newcen)
                 jpos = int(self.qim[kq][2]/self.pixscale + self.newcen)
                 imin = max(0,ipos-self.midpsf)
@@ -210,12 +212,12 @@ class Imager(object):
                 dy = self.qim[kq][2]/self.pixscale + self.newcen - jpos
                 # unif.dither and drift the psf grid by (dx,dy), for each quasar image
                 # can we avoid the nested loop?
-                for i1 in range(imin,imax)
-                    for i2 in range(jmin,jmax)
-                    self.image += (self.psf[self.midpsf+i1-ipos,self.midpsf+i2-jpos]*(1.-abs(dx))*(1.-abs(dy))
-                                  + self.psf[self.midpsf+i1-ipos-cmp(dx,0),self.midpsf+i2-jpos-cmp(dy,0)]*abs(dx*dy)
-                                  + self.psf[self.midpsf+i1-ipos-cmp(dx,0),self.midpsf+i2-jpos]*abs(dy)*(1-abs(dx))
-                                  + self.psf[self.midpsf+i1-ipos,self.midpsf+i2-jpos-cmp(dy,0)]*abs(dx)*(1-abs(dy)))*qflux[kq]
+                for i1 in range(imin,imax):
+                    for i2 in range(jmin,jmax):
+                        self.image += ( self.psf[self.midpsf+i1-ipos,self.midpsf+i2-jpos]*(1.-abs(dx))*(1.-abs(dy))
+                        + self.psf[self.midpsf+i1-ipos-cmp(dx,0),self.midpsf+i2-jpos-cmp(dy,0)]*abs(dx*dy)
+                        + self.psf[self.midpsf+i1-ipos-cmp(dx,0),self.midpsf+i2-jpos]*abs(dy)*(1-abs(dx))
+                        + self.psf[self.midpsf+i1-ipos,self.midpsf+i2-jpos-cmp(dy,0)]*abs(dx)*(1-abs(dy)) )*qflux[kq]
 
 
             self.image += self.lens_galaxy_image*lgalflux + skyflux
