@@ -451,14 +451,14 @@ if __name__ == '__main__':
 #         print "Lens ",id," has zd,zs = ",lens.ZLENS[0],lens.ZSRC[0]
 #         print "and has images with magnifications: ",lens.MAG[0]
 
-# # Look up one system:    
-#         
-#     id = 7176527
-#     lens = db.get_lens(id)
-#     
-#     if lens is not None: 
-#         print "Lens ",id," has zd,zs = ",lens.ZLENS[0],lens.ZSRC[0]
-#         print "and has images with magnifications: ",lens.MAG[0]
+# Look up one system:    
+        
+    id = 7176527
+    lens = db.get_lens(id)
+    
+    if lens is not None: 
+        print "Lens ",id," has zd,zs = ",lens.ZLENS[0],lens.ZSRC[0]
+        print "and has images with magnifications: ",lens.MAG[0]
 
 # # To make a mock catalog of SDSS lenses:
 # 
@@ -486,22 +486,22 @@ if __name__ == '__main__':
 #     pars = ['ZLENS','ZSRC','APMAG_I','MAGI','IMSEP']
 #     db.export_to_cpt(pars,"OM10_PS1_mock_lensed_quasars.cpt")
 
-# To make a mock catalog of LSST lenses:
-
-    db.select_random(maglim=21.5,area=20000.0,IQ=0.75)
-    print db.Nlenses," LSST lenses"
-    
-    good = db.sample[numpy.where(db.sample.IMSEP > 1.0)]
-    print "Number with imsep > 1.0 arcsec = ",len(good)
-
-    bright = good[numpy.where(good.APMAG_I < 22.0)]
-    print "Number of these with md < 22 = ",len(bright)
-    
-    lagged = bright[numpy.where(numpy.max(bright.DELAY,axis=1) > 10.0)]
-    print "Number of these with time delay > 10 days = ",len(lagged)
-
-    nearby = lagged[numpy.where((lagged.ZLENS > 0.1) * (lagged.ZLENS < 0.6))]
-    print "Number of these with 0.1 < zd < 0.6 = ",len(nearby)
+# # To make a mock catalog of LSST lenses:
+# 
+#     db.select_random(maglim=21.5,area=20000.0,IQ=0.75)
+#     print db.Nlenses," LSST lenses"
+#     
+#     good = db.sample[numpy.where(db.sample.IMSEP > 1.0)]
+#     print "Number with imsep > 1.0 arcsec = ",len(good)
+# 
+#     bright = good[numpy.where(good.APMAG_I < 22.0)]
+#     print "Number of these with md < 22 = ",len(bright)
+#     
+#     lagged = bright[numpy.where(numpy.max(bright.DELAY,axis=1) > 10.0)]
+#     print "Number of these with time delay > 10 days = ",len(lagged)
+# 
+#     nearby = lagged[numpy.where((lagged.ZLENS > 0.1) * (lagged.ZLENS < 0.6))]
+#     print "Number of these with 0.1 < zd < 0.6 = ",len(nearby)
 
 # To make a mock catalog of DES time delay lenses:
 # 
