@@ -488,8 +488,20 @@ if __name__ == '__main__':
 
 # To make a mock catalog of LSST lenses:
 
-#     db.select_random(maglim=23.3,area=20000.0,IQ=0.75)
-#     print db.Nlenses," LSST lenses, with zd = ",db.sample.ZLENS
+    db.select_random(maglim=21.5,area=20000.0,IQ=0.75)
+    print db.Nlenses," LSST lenses"
+    
+    good = db.sample[numpy.where(db.sample.IMSEP > 1.0)]
+    print "Number with imsep > 1.0 arcsec = ",len(good)
+
+    bright = good[numpy.where(good.APMAG_I < 22.0)]
+    print "Number of these with md < 22 = ",len(bright)
+    
+    lagged = bright[numpy.where(numpy.max(bright.DELAY,axis=1) > 10.0)]
+    print "Number of these with time delay > 10 days = ",len(lagged)
+
+    nearby = lagged[numpy.where((lagged.ZLENS > 0.1) * (lagged.ZLENS < 0.6))]
+    print "Number of these with 0.1 < zd < 0.6 = ",len(nearby)
 
 # To make a mock catalog of DES time delay lenses:
 # 
@@ -525,23 +537,23 @@ if __name__ == '__main__':
 #   http://github.com/drphilmarshall/pappy
 
 
-# Read in LRGs from CFHTLS:
+# # Read in LRGs from CFHTLS:
+# 
+#     db.get_LRGs()
+# 
+# # Associate LRGs with sample - this appends the CFHTLS magnitudes in all filters to each lens,
+# # based on the i magnitude and redshift:
+# 
+#     db.match_LRGs()
 
-    db.get_LRGs()
-
-# Associate LRGs with sample - this appends the CFHTLS magnitudes in all filters to each lens,
-# based on the i magnitude and redshift:
-
-    db.match_LRGs()
-
-# To select 10 lenses detectable with PS1 at each epoch:
-
-    db.select_random(maglim=21.4,area=30000.0,IQ=1.0,Nlens=10)
-    print db.Nlenses," representative PS1 3pi lenses, with zd = ", \
-      db.sample.ZLENS
-    # print "ugriz = ", \
-    #   db.sample.uMAG_LRG,db.sample.gMAG_LRG,db.sample.rMAG_LRG, \
-    #   db.sample.iMAG_LRG,db.sample.zMAG_LRG
+# # To select 10 lenses detectable with PS1 at each epoch:
+# 
+#     db.select_random(maglim=21.4,area=30000.0,IQ=1.0,Nlens=10)
+#     print db.Nlenses," representative PS1 3pi lenses, with zd = ", \
+#       db.sample.ZLENS
+#     # print "ugriz = ", \
+#     #   db.sample.uMAG_LRG,db.sample.gMAG_LRG,db.sample.rMAG_LRG, \
+#     #   db.sample.iMAG_LRG,db.sample.zMAG_LRG
 
 
 # 10-sigma detection in a single epoch?
