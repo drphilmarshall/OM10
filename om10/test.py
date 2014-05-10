@@ -34,7 +34,7 @@ class TestDB(unittest.TestCase):
 
     def setUp(self):
         # self.db = om10.DB(catalog=os.path.expandvars("$OM10_DIR/data/qso_mock.fits"))
-        self.db = om10.DB(catalog=os.path.expandvars("../data/qso_mock.fits"))
+        self.db = om10.DB(catalog=os.path.expandvars("data/qso_mock.fits"))
         return
         
     def tearDown(self):
@@ -45,7 +45,7 @@ class TestDB(unittest.TestCase):
         id = 7176527
         lens = self.db.get_lens(id)
         self.assertIsNotNone(lens) 
-        self.assertAlmostEqual(lens.ZLENS[0],0.55) # 0.556
+        self.assertAlmostEqual(lens.ZLENS[0],0.892) # 0.556
         self.assertAlmostEqual(lens.ZSRC[0],1.88)
         self.assertAlmostEqual(lens.MAG[0][0],2.9873)
         return
