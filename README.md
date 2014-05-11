@@ -1,6 +1,9 @@
 OM10
 ====
 
+<a href='https://travis-ci.org/drphilmarshall/OM10'>
+<img src='https://secure.travis-ci.org/drphilmarshall/OM10.png?branch=unittest'></a>
+
 Tools for working with the Oguri &amp; Marshall (2010) mock catalog of strong gravitational lenses
 
 ### Getting started
