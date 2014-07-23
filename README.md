@@ -36,7 +36,7 @@ Select a mock LSST sample:
 ### License, Credits
 
 This code is distributed under GPL v2, and is being developed by Marshall 
-(KIPAC), Sonnenfeld (UCSB) and others.
+(KIPAC), Sonnenfeld (UCSB), Liao (UCSB) and Agnello (UCSB).
 
 If you use the OM10 mock lens catalog in your research, please cite [Oguri &amp; Marshall
 (2010)](http://adsabs.harvard.edu/abs/2010MNRAS.405.2579O). Here's the bibtex for you!
