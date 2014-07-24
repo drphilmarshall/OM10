@@ -102,7 +102,7 @@ class Imager(object):
             raise "ERROR: unrecognised survey "+survey+": default config for parameters and canvas"  
         # These must be set from reading within OM10!!!!
         self.quasims=2
-        self.qim=numpy.array([[1.0,0.5],[1.0,0.5]])
+        self.qim=numpy.array([[1.0,0.5],[-1.0,-0.5]])
         self.qmag= 19.
         self.qmag=10**(9-0.4*self.qmag)
         self.magnif=numpy.array([10.,2.])
