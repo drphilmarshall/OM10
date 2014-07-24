@@ -1,6 +1,7 @@
 # ======================================================================
 
 import numpy,pyfits,sys,os,subprocess,math
+import numpy as np
 
 import om10
 
@@ -288,7 +289,8 @@ if __name__ == '__main__':
 
 # Some examples!
                 
-    db = om10.DB(catalog="/data2/liaokai/OM10/data/qso_mock.fits")
+    db = om10.DB(catalog=os.path.expandvars("$OM10_DIR/data/qso_mock.fits"))
+ 
 
 # Get one lens:
  
