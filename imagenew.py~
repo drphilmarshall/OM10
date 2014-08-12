@@ -1,0 +1,35 @@
+from numpy import *
+'''
+To convert Adri's mathematica version to Python
+
+Kai 
+'''
+
+def bs(n):
+    return (2.*n-1.)/3.
+
+def Sersic(R, n):
+    return exp(-bs(n)*R**(1./n))
+
+def flase(x, y, flat, pa, n):
+    return Sersic((flat*(x*cos(pa)+y*sin(pa))**2.+flat**(-1.0)*(-sin(pa)*x+cos(pa)*y)**2.)**0.5, n)
+
+def G(x, dx):
+    return exp(-0.5*x**2./dx**2.)/((2*pi)**0.5*dx)
+
+def GG(x, dx):
+    return G(abs(x)**0.5, dx)
+
+def Gint(x, y, dx, dy):
+    return (9./16)*G(x,dx)*G(y,dy)+(3./32)*(G(x+1.,dx)*G(y,dy)+G(x-1.,dx)*G(y,dy)+\
+           G(x,dx)*G(y+1.,dy)+G(x,dx)*G(y-1.,dy))+(1/64.)*(G(x-1.,dx)*G(y-1.,dy)+\
+           G(x-1.,dx)G(y+1.,dy)+G(x+1.,dx)*G(y-1.,dt)+G(x+1.,dx)*G(y+1.,dy))
+#Gint is useful to interpolate the Gaussian psf on 3*3 grid.
+#SDSS
+pixscale = 0.4
+meanIQ = 1.4/2
+meanIQ = meanIQ/(log(2.)*2.**0.5)    # make sure the log is log_e!
+meandepth = 20.8 #magnitudes per arcsecond
+errdepth = 0.3
+
+
