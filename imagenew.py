@@ -1,8 +1,16 @@
 from numpy import *
 '''
-To convert Adri's mathematica version to Python
+Authors: Kai Liao, Adri Agnello (UCSB and UCLA)
+         Phil Marshall (Stanford)
 
-Kai 
+Started: Liao, Aug.2014
+
+Description: Convert Adri's Mathematica version into Python.
+ Given the survey imaging conditions and an object ID in OM10,
+ paint it in chosen band (g,r,i,z). Current python version
+ adapted on doubles, must be refactored to work on quads and
+ systems with any number of point-sources in image-plane.
+
 '''
 
 def bs(n):
@@ -24,11 +32,11 @@ def Gint(x, y, dx, dy):
     return (9./16)*G(x,dx)*G(y,dy)+(3./32)*(G(x+1.,dx)*G(y,dy)+G(x-1.,dx)*G(y,dy)+\
            G(x,dx)*G(y+1.,dy)+G(x,dx)*G(y-1.,dy))+(1/64.)*(G(x-1.,dx)*G(y-1.,dy)+\
            G(x-1.,dx)G(y+1.,dy)+G(x+1.,dx)*G(y-1.,dt)+G(x+1.,dx)*G(y+1.,dy))
-#Gint is useful to interpolate the Gaussian psf on 3*3 grid.
+#Gint is useful to interpolate the Gaussian psf on 3*3 grid, i.e. sharing PSF fluxes among neighbouring pixels.
 #SDSS
 pixscale = 0.4
 meanIQ = 1.4/2
-meanIQ = meanIQ/(log(2.)*2.**0.5)    # make sure the log is log_e!
+meanIQ = meanIQ/(log(2.)*2.**0.5)    #the log is log_e!
 meandepth = 20.8 #magnitudes per arcsecond
 errdepth = 0.3
 #more specific: band fluxes and fluctuations
