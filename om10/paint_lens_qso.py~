@@ -163,7 +163,7 @@ print om10g
 
 kz_q=math.ceil((z_om10_q-zmin)/step3)-1
 ko_q=math.ceil((i_q-imin)/step4)-1
-if kz_q<50 and -1<ko_q<20 and nq[kz_q,ko_q]>0:
+if kz_q<50 and -1<ko_q<20 and ng[kz_q,ko_q]>0:
 
    print 'non-zero'
    meanq=mqso[kz_q,ko_q,:]/nq[kz_q,ko_q]
