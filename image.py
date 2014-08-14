@@ -102,7 +102,7 @@ class Imager(object):
             raise "ERROR: unrecognised survey "+survey+": default config for parameters and canvas"  
         # These must be set from reading within OM10!!!!
         self.quasims=2
-        self.qim=numpy.array([[1.0,0.5],[-1.0,-0.5]])
+        self.qim=numpy.array([[1.31,0.57],[-1.31,-0.57]])
         self.qmag= 19.
         self.qmag=10**(9-0.4*self.qmag)
         self.magnif=numpy.array([10.,2.])
@@ -220,19 +220,22 @@ class Imager(object):
             self.sci = self.image
             self.write()
             # first break here when checking
-
+            # break
             # Paint in point-source PSFs:
             quasims=self.quasims
             qflux=self.qflux
-            for kq in range(quasims-1):
+            for kq in range(quasims):
+                print 'QSO image n.',kq+1
                 ipos = int(self.qim[kq][0]/self.pixscale + self.newcen)
                 jpos = int(self.qim[kq][1]/self.pixscale + self.newcen)
+                print 'xi,yi=',ipos,',',jpos
                 imin = max(0,ipos-self.midpsf)
                 jmin = max(0,jpos-self.midpsf)
                 imax = min(self.canvas-1,ipos+self.midpsf)
                 jmax = min(self.canvas-1,jpos+self.midpsf)
                 dx = self.qim[kq][0]/self.pixscale + self.newcen - ipos
                 dy = self.qim[kq][1]/self.pixscale + self.newcen - jpos
+                print 'dx,dy=',dx,',',dy
                 # unif.dither and drift the psf grid by (dx,dy), for each quasar image
                 # can we avoid the nested loop?
                 for i1 in range(imin,imax):
@@ -246,7 +249,7 @@ class Imager(object):
             self.sci = self.image
             self.write()
             # second break here when checking
-
+            # break
             self.image += skyflux
 
             # Image with noise:
