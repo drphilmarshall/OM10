@@ -51,12 +51,11 @@ class DB(object):
 
         self.name = 'OM10 database'
         self.catalog = catalog
-                
+
         # Make a FITS table from the supplied text catalogs, if required:
         if generate:
             self.make_table()
-#            self.catalog = os.path.expandvars("$OM10_DIR/data/qso_mock.fits")
-            self.catalog = os.path.expandvars("/data2/liaokai/OM10/data/qso_mock.fits")
+            self.catalog = os.path.expandvars("$OM10_DIR/data/qso_mock.fits")
             self.write_table(self.catalog)
         
         # If given a catalog, read it in:
@@ -80,8 +79,7 @@ class DB(object):
         
         # Read in lens data from original text catalog:
 
-        #lensfile = os.path.expandvars("$OM10_DIR/data/qso_mock_result+lensphot+lensgeom.dat")
-        lensfile = os.path.expandvars("/data2/liaokai/OM10/data/qso_mock_result+lensphot+lensgeom.dat")
+        lensfile = os.path.expandvars("$OM10_DIR/data/qso_mock_result+lensphot+lensgeom.dat")
         d = numpy.loadtxt(lensfile)
         if vb: print "om10.DB: read in lens data from ",lensfile
 
@@ -128,8 +126,7 @@ class DB(object):
         # Loop through image log file, line by line, filling up image 
         # parameter arrays:
 
-        #logfile = os.path.expandvars("$OM10_DIR/data/qso_mock_log.dat")
-        logfile = os.path.expandvars("/data2/liaokai/OM10/data/qso_mock_log.dat")
+        logfile = os.path.expandvars("$OM10_DIR/data/qso_mock_log.dat")
         
         with open(logfile, "r") as file:
 
@@ -332,8 +329,7 @@ class DB(object):
 
     def get_LRGs(self,dmag=0.2,dz=0.2):    
         
-        #LRGfile = os.path.expandvars("$OM10_DIR/data/CFHTLS_LRGs.txt")
-        LRGfile = os.path.expandvars("/data2/liaokai/OM10/data/CFHTLS_LRGs.txt")
+        LRGfile = os.path.expandvars("$OM10_DIR/data/CFHTLS_LRGs.txt")
         try: d = numpy.loadtxt(LRGfile)
         except: raise "ERROR: cannot find LRG catalog!"
  
@@ -444,8 +440,7 @@ if __name__ == '__main__':
     
 # To read in an old FITS catalog:    
             
-    #db = om10.DB(catalog=os.path.expandvars("$OM10_DIR/data/qso_mock.fits"))
-    db = om10.DB(catalog=os.path.expandvars("/data2/liaokai/OM10/data/qso_mock.fits"))
+    db = om10.DB(catalog=os.path.expandvars("$OM10_DIR/data/qso_mock.fits"))
 # Get one lens:
  
 #     id = 7176527
