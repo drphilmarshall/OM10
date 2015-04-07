@@ -488,7 +488,9 @@ if __name__ == '__main__':
 
 # To make a mock catalog of LSST lenses:
 
-    db.select_random(maglim=21.5,area=20000.0,IQ=0.75)
+#     db.select_random(maglim=21.5,area=20000.0,IQ=0.75)
+#     print db.Nlenses," LSST lenses"
+    db.select_random(maglim=23.3,area=18000.0,IQ=0.75)
     print db.Nlenses," LSST lenses"
     
     good = db.sample[numpy.where(db.sample.IMSEP > 1.0)]
@@ -503,10 +505,26 @@ if __name__ == '__main__':
     nearby = lagged[numpy.where((lagged.ZLENS > 0.1) * (lagged.ZLENS < 0.6))]
     print "Number of these with 0.1 < zd < 0.6 = ",len(nearby)
 
+# Example outputs:
+
+# Mag limit 21.5:
+# 813  LSST lenses
+# Number with imsep > 1.0 arcsec =  581
+# Number of these with md < 22 =  523
+# Number of these with time delay > 10 days =  505
+# Number of these with 0.1 < zd < 0.6 =  254
+
+# Mag limit 23.3:
+# 2813  LSST lenses
+# Number with imsep > 1.0 arcsec =  1911
+# Number of these with md < 22 =  1614
+# Number of these with time delay > 10 days =  1559
+# Number of these with 0.1 < zd < 0.6 =  795
+
 # To make a mock catalog of DES time delay lenses:
-# 
-#     db.select_random(maglim=18.0,area=5000.0,IQ=0.9)
-#     db.write_table("OM10_DES_mock_time-delay_lensed_quasars.fits")
+ 
+    db.select_random(maglim=20.0,area=5000.0,IQ=0.9)
+    db.write_table("OM10_DES_mock_time-delay_lensed_quasars.fits")
 
 # and export them for plotting:
 #     
