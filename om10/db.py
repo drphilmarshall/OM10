@@ -1,6 +1,7 @@
 # ======================================================================
 
 import numpy,pyfits,sys,os,subprocess
+import numpy as np
 
 # from astropy.table import Table
 
@@ -50,7 +51,7 @@ class DB(object):
 
         self.name = 'OM10 database'
         self.catalog = catalog
-                
+
         # Make a FITS table from the supplied text catalogs, if required:
         if generate:
             self.make_table()
@@ -329,7 +330,6 @@ class DB(object):
     def get_LRGs(self,dmag=0.2,dz=0.2):    
         
         LRGfile = os.path.expandvars("$OM10_DIR/data/CFHTLS_LRGs.txt")
-        
         try: d = numpy.loadtxt(LRGfile)
         except: raise "ERROR: cannot find LRG catalog!"
  
@@ -441,7 +441,6 @@ if __name__ == '__main__':
 # To read in an old FITS catalog:    
             
     db = om10.DB(catalog=os.path.expandvars("$OM10_DIR/data/qso_mock.fits"))
-
 # Get one lens:
  
 #     id = 7176527
