@@ -12,7 +12,7 @@ except: pass
 matplotlib.rc('font',**{'family':'serif', 'serif':['TimesNewRoman']})
 matplotlib.rc('text', usetex=True)
 
-import numpy,pylab,sys
+import pylab,sys,numpy as np
 
 import om10
 
@@ -25,19 +25,19 @@ def plot_lens(lens):
       plot_lens
 
     PURPOSE
-      Given an OM10 lens, compute some basic quantities, 
+      Given an OM10 lens, compute some basic quantities,
       then plot them on the sky.
 
     COMMENTS
 
     AUTHORS
       This file is part of the OM10 project, distributed under the
-      GPL v2 by Phil Marshall (KIPAC). 
+      GPL v2 by Phil Marshall (KIPAC).
       Please cite: Oguri & Marshall (2010), MNRAS, 405, 2579.
 
     HISTORY
       2010-06-13 started as standalone script Marshall (KIPAC)
-      2013-09-27 adapted for OM10 project Marshall (KIPAC)    
+      2013-09-27 adapted for OM10 project Marshall (KIPAC)
     """
 
     # --------------------------------------------------------------------
@@ -58,14 +58,14 @@ def plot_lens(lens):
     zs = lens.ZSRC[0]
     q = 1.0 - lens.ELLIP[0]
     phi = lens.PHIE[0]
-    
+
     print "om10.plot_lens: plotting image configuration of lens ID ",id
-  
+
     # Compute image magnitudes:
-    mi = numpy.zeros(nim)
-    lfi = numpy.zeros(nim)
+    mi = np.zeros(nim)
+    lfi = np.zeros(nim)
     for i in range(nim):
-      mi[i] = ms - 2.5*numpy.log10(numpy.abs(mui[i]))
+      mi[i] = ms - 2.5*np.log10(np.abs(mui[i]))
       lfi[i] = 0.4*(24-mi[i])
     print "om10.plot_lens: lens, image magnitudes:",md,mi
     lfd = 0.4*(24-md)
@@ -102,7 +102,7 @@ def plot_lens(lens):
     # Ellipse to represent lens brightness:
     ell = matplotlib.patches.Ellipse((xd,yd), width=2*dm*lfd, height=2*q*dm*lfd, angle=phi, alpha=0.2, fc='orange')
     pylab.gca().add_patch(ell)
-    
+
     # Circles to represent image brightness:
     for i in range(nim):
       cir = pylab.Circle((xi[i],yi[i]), radius=dm*lfi[i], alpha=0.2, fc='blue')
@@ -145,7 +145,7 @@ def plot_lens(lens):
 if __name__ == '__main__':
 
     db = om10.DB(catalog="data/qso_mock.fits")
-    
+
     # Pull out a specific lens and plot it:
     id = 7176527
     lens = db.get_lens(id)
@@ -153,12 +153,10 @@ if __name__ == '__main__':
 
     # Plot 3 random lenses and plot them:
     lenses = db.select_random(maglim=21.4,area=30000.0,IQ=1.0,Nlens=3)
-    if lenses is not None: 
+    if lenses is not None:
         for id in lenses.LENSID:
             lens = db.get_lens(id)
             om10.plot_lens(lens)
 
 
 # ======================================================================
-
-
