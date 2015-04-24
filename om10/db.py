@@ -2,6 +2,7 @@
 
 import numpy,pyfits,sys,os,subprocess
 import numpy as np
+import os
 
 # from astropy.table import Table
 
@@ -332,11 +333,13 @@ class DB(object):
 
     def get_LRGs(self,dmag=0.2,dz=0.2):    
         
-        #LRGfile = os.path.expandvars("$OM10_DIR/data/CFHTLS_LRGs.txt")
-        LRGfile = os.path.expandvars("/data2/liaokai/OM10/data/CFHTLS_LRGs.txt")
-        try: d = numpy.loadtxt(LRGfile)
-        except: raise "ERROR: cannot find LRG catalog!"
- 
+        LRGfile = os.path.expandvars("$OM10_DIR/data/CFHTLS_LRGs.txt")
+        #LRGfile = os.path.expandvars("/data2/liaokai/OM10/data/CFHTLS_LRGs.txt") 
+        try:
+            d = np.loadtxt(LRGfile)
+        except IOError:
+            print "Cannot find LRG catalog!"
+
         if vb: print "om10.DB: read in LRG data from ",LRGfile
 
         # Put LRG parameters in LRG structure:
@@ -444,8 +447,8 @@ if __name__ == '__main__':
     
 # To read in an old FITS catalog:    
             
-    #db = om10.DB(catalog=os.path.expandvars("$OM10_DIR/data/qso_mock.fits"))
-    db = om10.DB(catalog=os.path.expandvars("/data2/liaokai/OM10/data/qso_mock.fits"))
+    db = om10.DB(catalog=os.path.expandvars("$OM10_DIR/data/qso_mock.fits"))
+    #db = om10.DB(catalog=os.path.expandvars("/data2/liaokai/OM10/data/qso_mock.fits"))
 # Get one lens:
  
 #     id = 7176527

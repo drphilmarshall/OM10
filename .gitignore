@@ -1,5 +1,10 @@
 *.py[cod]
 
+#temp files
+*~
+om10/.ipynb_checkpoints
+notebooks/.ipynb_checkpoints
+
 # Data files
 *.fits
 

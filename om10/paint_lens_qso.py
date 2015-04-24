@@ -1,5 +1,6 @@
 from numpy import *
 import math
+import os
 """
     NAME
         paint_lens_qso
@@ -46,11 +47,11 @@ i_q=14.5
 
 
 ## read data from SDSS
-f=open('$OM10_DIR/data/LRGo.txt','r')
+f=open(os.path.expandvars('$OM10_DIR/data/LRGo.txt'),'r')
 lrg=loadtxt(f)
 f.close()
 #print lrg[0,0],lrg.shape
-g=open('$OM10_DIR/data/QSOo.txt','r')
+g=open(os.path.expandvars('$OM10_DIR/data/QSOo.txt'),'r')
 qso=loadtxt(g)
 g.close()
 #print qso[0,0],qso.shape
