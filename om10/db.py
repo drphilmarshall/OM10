@@ -3,6 +3,8 @@
 import pyfits,sys,os,subprocess
 import numpy as np
 import os
+from numpy import *
+import math
 
 # from astropy.table import Table
 
@@ -338,7 +340,7 @@ class DB(object):
 	try:
             d = np.loadtxt(LRGfile)
         except IOError:
-            print "Cannot find LRG catalog!"        
+            print "Cannot find LRG catalog!"
         if vb: print "om10.DB: read in LRG sky position data from ",LRGfile
 
         # Put LRG parameters in LRG structure:
@@ -378,11 +380,13 @@ class DB(object):
         # Prepare new columns for LRG properties:
         size = len(self.lenses.LENSID)
         dummy = np.zeros(size)
-        # For some reason the following lines don't work - we need to
-        # switch to a better dataframe system, like pandas, so that we can
-        # add table columns in the way we need to...
-        self.lenses['RA'] = dummy
-        self.lenses['DEC'] = dummy
+
+        cols = []
+        cols.append(pyfits.Column(name='RA   ',format='D       ',array=dummy))
+        cols.append(pyfits.Column(name='DEC   ',format='D       ',array=dummy))
+        orig_cols = self.lenses.columns
+        new_cols = pyfits.ColDefs(cols)
+        self.lenses = pyfits.FITS_rec.from_columns(orig_cols + new_cols)
 
         # First digitize the lenses to the same bins as the LRGs:
 
@@ -422,6 +426,226 @@ class DB(object):
                 print "  Lens RA,DEC: ",self.lenses.RA[k],self.lenses.DEC[k]
 
         return
+
+# ----------------------------------------------------------------------------
+
+    def makeSimCatalog(self):
+        raise NotImplementedError
+        return
+
+# ----------------------------------------------------------------------------
+
+    def paint(self,Nmax=None):
+        ## read data from SDSS
+        f=open(os.path.expandvars('$OM10_DIR/data/LRGo.txt'),'r')
+        lrg=loadtxt(f)
+        f.close()
+        #print lrg[0,0],lrg.shape
+        g=open(os.path.expandvars('$OM10_DIR/data/QSOo.txt'),'r')
+        qso=loadtxt(g)
+        g.close()
+        #print qso[0,0],qso.shape
+
+        ######
+        zmin=0.
+        zmaxq=5.
+        zmaxg=1.
+        imin=15.
+        imax=22.
+        sming=80.
+        smaxg=400.
+        binsz=50
+        binsobs=20
+        step1=float((zmaxg-zmin)/binsz)
+        step2=float((smaxg-sming)/binsobs)
+        step3=float((zmaxq-zmin)/binsz)
+        step4=float((imax-imin)/binsobs)
+
+        RSDSS=1.5 #aperture size for SDSS 1.5 arcseconds
+        ng=zeros((500,200))
+        nq=zeros((500,200))
+        mlrg=zeros((50,20,14))
+        slrg=zeros((50,20,14))
+        mqso=zeros((50,20,9))
+        sqso=zeros((50,20,9))
+
+        ##########
+
+        for i in range(lrg.shape[0]):
+
+            sigma=lrg[i,1]*(2.45/2.0)**0.5*(lrg[i,3]/RSDSS)**-0.066
+            kz=math.ceil((lrg[i,0]-zmin)/step1)-1
+            ko=math.ceil((sigma-sming)/step2)-1
+
+            if -1<kz<50 and -1<ko<20:
+               ng[kz,ko]+=1
+               mlrg[kz,ko,:]+=lrg[i,:]
+               slrg[kz,ko,:]+=lrg[i,:]**2
+               #slrg[kz,ko]+=
+
+
+        #print ng[16,9]
+        #meang=mlrg[16,9,:]/ng[16,9]
+        #print meang
+        #print sqrt(slrg[16,9,:]/ng[16,9]-meang**2)
+
+        ###########
+
+        for j in range(qso.shape[0]):
+
+            kz=math.ceil((qso[j,0]-zmin)/step3)-1
+            ko=math.ceil((qso[j,3]-imin)/step4)-1
+
+            if -1<kz<50 and -1<ko<20:
+               nq[kz,ko]+=1
+               mqso[kz,ko,:]+=qso[j,:]
+               sqso[kz,ko,:]+=qso[j,:]**2
+
+
+        #print sum(nq)
+
+        #meanq=mqso[21,14,:]/nq[21,14]
+        #print meanq
+        #print sqrt(sqso[21,14,:]/nq[21,14]-meanq**2)
+
+        size = len(self.lenses)
+        print 'size is ', size
+        dummy = np.zeros(size)
+
+        cols = []
+        cols.append(pyfits.Column(name='MAGG_LENS    ',format='D       ',array=dummy))
+        cols.append(pyfits.Column(name='MAGR_LENS    ',format='D       ',array=dummy))
+        cols.append(pyfits.Column(name='MAGI_LENS    ',format='D       ',array=dummy))
+        cols.append(pyfits.Column(name='MAGZ_LENS    ',format='D       ',array=dummy))
+        cols.append(pyfits.Column(name='MAGW1_LENS   ',format='D       ',array=dummy))
+        cols.append(pyfits.Column(name='MAGW2_LENS   ',format='D       ',array=dummy))
+        cols.append(pyfits.Column(name='MAGW3_LENS   ',format='D       ',array=dummy))
+        cols.append(pyfits.Column(name='MAGW4_LENS   ',format='D       ',array=dummy))
+
+        cols.append(pyfits.Column(name='MAGG_SRC     ',format='D       ',array=dummy))
+        cols.append(pyfits.Column(name='MAGR_SRC     ',format='D       ',array=dummy))
+        cols.append(pyfits.Column(name='MAGI_SRC     ',format='D       ',array=dummy))
+        cols.append(pyfits.Column(name='MAGZ_SRC     ',format='D       ',array=dummy))
+        cols.append(pyfits.Column(name='MAGW1_SRC    ',format='D       ',array=dummy))
+        cols.append(pyfits.Column(name='MAGW2_SRC    ',format='D       ',array=dummy))
+        cols.append(pyfits.Column(name='MAGW3_SRC    ',format='D       ',array=dummy))
+        cols.append(pyfits.Column(name='MAGW4_SRC    ',format='D       ',array=dummy))
+
+        cols.append(pyfits.Column(name='SDSS_FLAG_LENS  ',format='D       ',array=dummy))
+        cols.append(pyfits.Column(name='SDSS_FLAG_SRC   ',format='D       ',array=dummy))
+
+        orig_cols = self.lenses.columns
+        new_cols = pyfits.ColDefs(cols)
+        self.lenses = pyfits.FITS_rec.from_columns(orig_cols + new_cols)
+
+        print 'setup done'
+
+        if Nmax == None:
+            Nmax = size
+        for k in range(Nmax):
+
+            print 'analysing lens', k
+            z_om10_g = self.lenses.ZLENS[k]
+            sigma_om10 = self.lenses.VELDISP[k]
+            z_om10_q = self.lenses.ZSRC[k]
+            i_q = self.lenses.MAGI[k]
+
+            kz_g=math.ceil((z_om10_g-zmin)/step1)-1
+            ko_g=math.ceil((sigma_om10-sming)/step2)-1
+            if kz_g<50 and -1<ko_g<20 and ng[kz_g,ko_g]>0:
+
+               #print 'non-zero'
+               self.lenses.SDSS_FLAG_LENS[k] = 0
+               meang=mlrg[kz_g,ko_g,:]/ng[kz_g,ko_g]
+               errorg=sqrt(slrg[kz_g,ko_g,:]/ng[kz_g,ko_g]-meang**2)
+               om10g=meang+(-1.+2.*random.rand(14))*errorg
+            else:
+               if kz_g>49 or ko_g>19 or ko_g<0:
+                  #print 'out of the region!'
+                  self.lenses.SDSS_FLAG_LENS[k] = 2
+               else:
+                  self.lenses.SDSS_FLAG_LENS[k] = 1
+                  #print 'zero'
+               meangg=zeros((50,20,14))
+               errorgg=zeros((50,20,14))
+               disg=zeros((50,20))
+               wmeang=zeros(14)
+               werrorg=zeros(14)
+               wg=0
+
+               for i in range(50):
+                   for j in range(20):
+                       if ng[i,j]>0:
+                          meangg[i,j,:]=mlrg[i,j,:]/ng[i,j]
+                          errorgg[i,j,:]=sqrt(slrg[i,j,:]/ng[i,j]-meangg[i,j,:]**2)
+                       else:
+                          meangg[i,j,:]=mlrg[i,j,:]
+                          errorgg[i,j,:]= meangg[i,j,:]
+                       disg[i,j]=abs(z_om10_g-(i*step1+step1/2))+abs(sigma_om10-(j*step2+step2/2))
+                       wmeang += meangg[i,j,:]*e**(-disg[i,j])
+                       wg +=e**(-disg[i,j])
+                       werrorg += errorgg[i,j,:]*e**(-disg[i,j])
+
+               om10g=wmeang/wg+(-1.+2.*random.rand(14))*werrorg/wg
+
+            [self.lenses.MAGG_LENS[k], self.lenses.MAGR_LENS[k], self.lenses.MAGI_LENS[k], self.lenses.MAGZ_LENS[k],
+             self.lenses.MAGW1_LENS[k], self.lenses.MAGW2_LENS[k], self.lenses.MAGW3_LENS[k], self.lenses.MAGW4_LENS[k]] = om10g[6:]
+
+            #print "Lens Properties"
+            #print "redshift  sigma  g Reff  r   i    z   g mag   r mag   i mag   z   w1    w2    w3   w4"
+            #print om10g
+
+
+            ######################################3
+
+
+            kz_q=math.ceil((z_om10_q-zmin)/step3)-1
+            ko_q=math.ceil((i_q-imin)/step4)-1
+            if kz_q<50 and -1<ko_q<20 and nq[kz_q,ko_q]>0:
+
+               #print 'non-zero'
+               self.lenses.SDSS_FLAG_SRC[k] = 0
+               meanq=mqso[kz_q,ko_q,:]/nq[kz_q,ko_q]
+               errorq=sqrt(sqso[kz_q,ko_q,:]/nq[kz_q,ko_q]-meanq**2)
+               om10q=meanq+(-1.+2.*random.rand(9))*errorq
+            else:
+               if kz_q>49 or ko_q>19 or ko_q<0:
+                  self.lenses.SDSS_FLAG_SRC[k] = 2
+                  #print 'out of the region!'
+               else:
+                  self.lenses.SDSS_FLAG_SRC[k] = 1
+                  #print 'zero'
+               meanqq=zeros((50,20,9))
+               errorqq=zeros((50,20,9))
+               disq=zeros((50,20))
+               wmeanq=zeros(9)
+               werrorq=zeros(9)
+               wq=0
+
+               for i in range(50):
+                   for j in range(20):
+                       if nq[i,j]>0:
+                          meanqq[i,j,:]=mqso[i,j,:]/nq[i,j]
+                          errorqq[i,j,:]=sqrt(sqso[i,j,:]/nq[i,j]-meanqq[i,j,:]**2)
+                       else:
+                          meanqq[i,j,:]=mqso[i,j,:]
+                          errorqq[i,j,:]= meanqq[i,j,:]
+                       disq[i,j]=abs(z_om10_q-(i*step3+step3/2))+abs(i_q-(j*step4+step4/2))
+                       wmeanq += meanqq[i,j,:]*e**(-disq[i,j])
+                       wq +=e**(-disq[i,j])
+                       werrorq += errorqq[i,j,:]*e**(-disq[i,j])
+
+               om10q=wmeanq/wq+(-1.+2.*random.rand(9))*werrorq/wq
+
+            [self.lenses.MAGG_SRC[k], self.lenses.MAGR_SRC[k], self.lenses.MAGI_SRC[k], self.lenses.MAGZ_SRC[k],
+            self.lenses.MAGW1_SRC[k], self.lenses.MAGW2_SRC[k], self.lenses.MAGW3_SRC[k], self.lenses.MAGW4_SRC[k]] = om10q[1:]
+
+            #print "QSO Properties"
+            #print "redshift   g     r     i     z     w1      w2       w3     w4"
+            #print om10q
+
+        return
+
 
 # ======================================================================
 

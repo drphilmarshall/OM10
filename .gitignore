@@ -4,6 +4,7 @@
 *~
 om10/.ipynb_checkpoints
 notebooks/.ipynb_checkpoints
+.DS_Store
 
 # Data files
 *.fits
