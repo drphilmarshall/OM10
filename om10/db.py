@@ -1,10 +1,11 @@
 # ======================================================================
 
-import pyfits,sys,os,subprocess
+import sys,os,subprocess
 import numpy as np
 import os
 from numpy import *
 import math
+from astropy.table import Table, hstack
 
 # from astropy.table import Table
 
@@ -67,15 +68,15 @@ class DB(object):
 
         # If given a catalog, read it in:
         if self.catalog is not None:
-            self.lenses = pyfits.getdata(self.catalog)
-            # self.lenses = Table.read(self.catalog,format='fits')
-            # print self.lenses
+            #self.lenses = pyfits.getdat(self.catalog)
+            self.lenses = Table.read(self.catalog,format='fits')
+            #print self.lenses
 
         # No down-sampling has been done yet:
         self.sample = None
 
         # Count lenses:
-        try: self.Nlenses = len(self.lenses.LENSID)
+        try: self.Nlenses = len(self.lenses['LENSID'])
         except: self.Nlenses = 0
 
         return
@@ -83,7 +84,7 @@ class DB(object):
     # ------------------------------------------------------------------
 
     def make_table(self):
-
+        """
         # Read in lens data from original text catalog:
 
         lensfile = os.path.expandvars("$OM10_DIR/data/qso_mock_result+lensphot+lensgeom.dat")
@@ -204,13 +205,13 @@ class DB(object):
         self.lenses.append(pyfits.Column(name='L_I     ',format='D       ',array=np.zeros([size])))
         self.lenses.append(pyfits.Column(name='REFF    ',format='D       ',array=np.zeros([size])))
         self.lenses.append(pyfits.Column(name='REFF_T  ',format='D       ',array=np.zeros([size])))
-
+        """
         return
 
     # ------------------------------------------------------------------
 
     def write_table(self,catalog):
-
+        """
         try: os.remove(catalog)
         except OSError: pass
 
@@ -220,13 +221,13 @@ class DB(object):
             pyfits.writeto(catalog,self.sample)
 
         if vb: print "om10.DB: wrote catalog of ",self.Nlenses," OM10 lenses to file at "+catalog
-
+        """
         return
 
     # ------------------------------------------------------------------
 
     def export_to_cpt(self,pars,cptfile):
-
+        """
         try: os.remove(cptfile)
         except OSError: pass
 
@@ -284,14 +285,14 @@ class DB(object):
           sys.exit()
 
         if vb: print "om10.DB: wrote a ",len(pars),"-column plain text file of ",len(data)," OM10 lenses to file at "+cptfile
-
+        """
         return
 
     # ------------------------------------------------------------------
 
     def get_lens(self,ID):
 
-        try: rec = self.lenses[self.lenses.LENSID == ID]
+        try: rec = self.lenses[self.lenses['LENSID'] == ID]
         except: rec = None
 
         return rec
@@ -304,8 +305,8 @@ class DB(object):
 
         try:
             sample = self.lenses.copy()
-            sample = sample[sample.MAGI < maglim]
-            sample = sample[sample.IMSEP > 0.67*IQ]
+            sample = sample[sample['MAGI'] < maglim]
+            sample = sample[sample['IMSEP'] > 0.67*IQ]
         except:
             if vb: print "om10.DB: selection yields no lenses"
             return None
@@ -334,9 +335,9 @@ class DB(object):
 
     # ------------------------------------------------------------------
 
-    def get_sky_positions(self,dmag=0.2,dz=0.2):
+    def get_sky_positions(self,dmag=0.2,dz=0.2,input_cat='$OM10_DIR/data/CFHTLS_LRGs.txt'):
 
-        LRGfile = os.path.expandvars("$OM10_DIR/data/CFHTLS_LRGs.txt")
+        LRGfile = os.path.expandvars(input_cat)
 	try:
             d = np.loadtxt(LRGfile)
         except IOError:
@@ -373,25 +374,30 @@ class DB(object):
 
     # ------------------------------------------------------------------
 
-    def assign_sky_positions(self):
+    def assign_sky_positions(self,verbose=False):
 
-        reallyverbose = False
+        reallyverbose = verbose
 
         # Prepare new columns for LRG properties:
-        size = len(self.lenses.LENSID)
+        size = len(self.lenses['LENSID'])
         dummy = np.zeros(size)
+        print size
+        #cols = []
+        #cols.append(pyfits.Column(name='RA',format='D       ',array=dummy))
+        #cols.append(pyfits.Column(name='DEC',format='D       ',array=dummy))
 
-        cols = []
-        cols.append(pyfits.Column(name='RA   ',format='D       ',array=dummy))
-        cols.append(pyfits.Column(name='DEC   ',format='D       ',array=dummy))
-        orig_cols = self.lenses.columns
-        new_cols = pyfits.ColDefs(cols)
-        self.lenses = pyfits.FITS_rec.from_columns(orig_cols + new_cols)
+        self.lenses['RA'] = 0.0
+        self.lenses['DEC'] = 0.0
+
+        #self.lenses.columns.add_col(pyfits.Column(name='RA',format='D       ',array=dummy))
+        #self.lenses.columns.add_col(pyfits.Column(name='DEC',format='D       ',array=dummy))
+        #new_cols = pyfits.ColDefs(cols)
+        #self.lenses = pyfits.FITS_rec.from_columns(orig_cols + new_cols)
 
         # First digitize the lenses to the same bins as the LRGs:
 
-        ii = np.digitize(self.lenses.APMAG_I,self.LRGs['ibins'])
-        iz = np.digitize(self.lenses.ZLENS,self.LRGs['zbins'])
+        ii = np.digitize(self.lenses['APMAG_I'],self.LRGs['ibins'])
+        iz = np.digitize(self.lenses['ZLENS'],self.LRGs['zbins'])
 
         # Loop over lenses, finding all LRGs in its bin:
 
@@ -402,28 +408,28 @@ class DB(object):
 
             if len(i) == 0:
                 if reallyverbose: print "WARNING: Lens ",k," has no matching LRG..."
-                self.lenses.RA[k]       = -99
-                self.lenses.DEC[k]      = -99
+                self.lenses['RA'][k]       = -99
+                self.lenses['DEC'][k]      = -99
                 pass
 
             else:
                 if reallyverbose: print "Lens ",k," has ",len(i)," neighbour LRGs... "
 
                 # Compute distances to find nearest neighbour:
-                i0 = self.lenses.APMAG_I[k]
-                z0 = self.lenses.ZLENS[k]
+                i0 = self.lenses['APMAG_I'][k]
+                z0 = self.lenses['ZLENS'][k]
                 R = np.sqrt((self.LRGs['mag_i'][i]-i0)**2 + (self.LRGs['redshift'][i])**2)
                 best = np.where(R == np.min(R))
                 ibest = i[best[0][0]]
                 if reallyverbose:
                     print "  LRG  i,z: ",self.LRGs['mag_i'][ibest],self.LRGs['redshift'][ibest]
 
-                self.lenses.RA[k]       = self.LRGs['RA'][ibest]
-                self.lenses.DEC[k]      = self.LRGs['DEC'][ibest]
+                self.lenses['RA'][k]       = self.LRGs['RA'][ibest]
+                self.lenses['DEC'][k]      = self.LRGs['DEC'][ibest]
 
             if reallyverbose:
-                print "  Lens i,z: ",self.lenses.APMAG_I[k],self.lenses.ZLENS[k]
-                print "  Lens RA,DEC: ",self.lenses.RA[k],self.lenses.DEC[k]
+                print "  Lens i,z: ",self.lenses['APMAG_I'][k],self.lenses['ZLENS'][k]
+                print "  Lens RA,DEC: ",self.lenses['RA'][k],self.lenses['DEC'][k]
 
         return
 
@@ -435,13 +441,13 @@ class DB(object):
 
 # ----------------------------------------------------------------------------
 
-    def paint(self,Nmax=None):
+    def paint(self,Nmax=None,verbose=False,lrg_input_cat='$OM10_DIR/data/LRGo.txt',qso_input_cat='$OM10_DIR/data/QSOo.txt'):
         ## read data from SDSS
-        f=open(os.path.expandvars('$OM10_DIR/data/LRGo.txt'),'r')
+        f=open(os.path.expandvars(lrg_input_cat),'r')
         lrg=loadtxt(f)
         f.close()
         #print lrg[0,0],lrg.shape
-        g=open(os.path.expandvars('$OM10_DIR/data/QSOo.txt'),'r')
+        g=open(os.path.expandvars(qso_input_cat),'r')
         qso=loadtxt(g)
         g.close()
         #print qso[0,0],qso.shape
@@ -507,64 +513,45 @@ class DB(object):
         #meanq=mqso[21,14,:]/nq[21,14]
         #print meanq
         #print sqrt(sqso[21,14,:]/nq[21,14]-meanq**2)
-
         size = len(self.lenses)
-        print 'size is ', size
-        dummy = np.zeros(size)
+        if verbose: print 'size is ', size
 
-        cols = []
-        cols.append(pyfits.Column(name='MAGG_LENS    ',format='D       ',array=dummy))
-        cols.append(pyfits.Column(name='MAGR_LENS    ',format='D       ',array=dummy))
-        cols.append(pyfits.Column(name='MAGI_LENS    ',format='D       ',array=dummy))
-        cols.append(pyfits.Column(name='MAGZ_LENS    ',format='D       ',array=dummy))
-        cols.append(pyfits.Column(name='MAGW1_LENS   ',format='D       ',array=dummy))
-        cols.append(pyfits.Column(name='MAGW2_LENS   ',format='D       ',array=dummy))
-        cols.append(pyfits.Column(name='MAGW3_LENS   ',format='D       ',array=dummy))
-        cols.append(pyfits.Column(name='MAGW4_LENS   ',format='D       ',array=dummy))
+        lens_props = ['MAGG_LENS','MAGR_LENS','MAGI_LENS','MAGZ_LENS', \
+        'MAGW1_LENS','MAGW2_LENS','MAGW3_LENS','MAGW4_LENS', 'SDSS_FLAG_LENS']
 
-        cols.append(pyfits.Column(name='MAGG_SRC     ',format='D       ',array=dummy))
-        cols.append(pyfits.Column(name='MAGR_SRC     ',format='D       ',array=dummy))
-        cols.append(pyfits.Column(name='MAGI_SRC     ',format='D       ',array=dummy))
-        cols.append(pyfits.Column(name='MAGZ_SRC     ',format='D       ',array=dummy))
-        cols.append(pyfits.Column(name='MAGW1_SRC    ',format='D       ',array=dummy))
-        cols.append(pyfits.Column(name='MAGW2_SRC    ',format='D       ',array=dummy))
-        cols.append(pyfits.Column(name='MAGW3_SRC    ',format='D       ',array=dummy))
-        cols.append(pyfits.Column(name='MAGW4_SRC    ',format='D       ',array=dummy))
+        src_props = ['MAGG_SRC','MAGR_SRC','MAGI_SRC','MAGZ_SRC', \
+        'MAGW1_SRC','MAGW2_SRC','MAGW3_SRC','MAGW4_SRC', 'SDSS_FLAG_SRC']
 
-        cols.append(pyfits.Column(name='SDSS_FLAG_LENS  ',format='D       ',array=dummy))
-        cols.append(pyfits.Column(name='SDSS_FLAG_SRC   ',format='D       ',array=dummy))
+        tmp_lens = Table(np.zeros((size,len(lens_props)),dtype='>f8'),names=lens_props)
+        tmp_src = Table(np.zeros((size,len(src_props)),dtype='>f8'),names=src_props)
 
-        orig_cols = self.lenses.columns
-        new_cols = pyfits.ColDefs(cols)
-        self.lenses = pyfits.FITS_rec.from_columns(orig_cols + new_cols)
-
-        print 'setup done'
+        if verbose: print 'setup done'
 
         if Nmax == None:
             Nmax = size
         for k in range(Nmax):
 
-            print 'analysing lens', k
-            z_om10_g = self.lenses.ZLENS[k]
-            sigma_om10 = self.lenses.VELDISP[k]
-            z_om10_q = self.lenses.ZSRC[k]
-            i_q = self.lenses.MAGI[k]
+            if verbose: print 'analysing lens', k
+            z_om10_g = self.lenses['ZLENS'][k]
+            sigma_om10 = self.lenses['VELDISP'][k]
+            z_om10_q = self.lenses['ZSRC'][k]
+            i_q = self.lenses['MAGI'][k]
 
             kz_g=math.ceil((z_om10_g-zmin)/step1)-1
             ko_g=math.ceil((sigma_om10-sming)/step2)-1
             if kz_g<50 and -1<ko_g<20 and ng[kz_g,ko_g]>0:
 
                #print 'non-zero'
-               self.lenses.SDSS_FLAG_LENS[k] = 0
+               tmp_lens['SDSS_FLAG_LENS'][k] = 0
                meang=mlrg[kz_g,ko_g,:]/ng[kz_g,ko_g]
                errorg=sqrt(slrg[kz_g,ko_g,:]/ng[kz_g,ko_g]-meang**2)
                om10g=meang+(-1.+2.*random.rand(14))*errorg
             else:
                if kz_g>49 or ko_g>19 or ko_g<0:
                   #print 'out of the region!'
-                  self.lenses.SDSS_FLAG_LENS[k] = 2
+                  tmp_lens['SDSS_FLAG_LENS'][k] = 2
                else:
-                  self.lenses.SDSS_FLAG_LENS[k] = 1
+                  tmp_lens['SDSS_FLAG_LENS'][k] = 1
                   #print 'zero'
                meangg=zeros((50,20,14))
                errorgg=zeros((50,20,14))
@@ -588,8 +575,8 @@ class DB(object):
 
                om10g=wmeang/wg+(-1.+2.*random.rand(14))*werrorg/wg
 
-            [self.lenses.MAGG_LENS[k], self.lenses.MAGR_LENS[k], self.lenses.MAGI_LENS[k], self.lenses.MAGZ_LENS[k],
-             self.lenses.MAGW1_LENS[k], self.lenses.MAGW2_LENS[k], self.lenses.MAGW3_LENS[k], self.lenses.MAGW4_LENS[k]] = om10g[6:]
+            [tmp_lens['MAGG_LENS'][k], tmp_lens['MAGR_LENS'][k], tmp_lens['MAGI_LENS'][k], tmp_lens['MAGZ_LENS'][k],
+             tmp_lens['MAGW1_LENS'][k], tmp_lens['MAGW2_LENS'][k], tmp_lens['MAGW3_LENS'][k], tmp_lens['MAGW4_LENS'][k]] = om10g[6:]
 
             #print "Lens Properties"
             #print "redshift  sigma  g Reff  r   i    z   g mag   r mag   i mag   z   w1    w2    w3   w4"
@@ -604,16 +591,16 @@ class DB(object):
             if kz_q<50 and -1<ko_q<20 and nq[kz_q,ko_q]>0:
 
                #print 'non-zero'
-               self.lenses.SDSS_FLAG_SRC[k] = 0
+               tmp_src['SDSS_FLAG_SRC'][k] = 0
                meanq=mqso[kz_q,ko_q,:]/nq[kz_q,ko_q]
                errorq=sqrt(sqso[kz_q,ko_q,:]/nq[kz_q,ko_q]-meanq**2)
                om10q=meanq+(-1.+2.*random.rand(9))*errorq
             else:
                if kz_q>49 or ko_q>19 or ko_q<0:
-                  self.lenses.SDSS_FLAG_SRC[k] = 2
+                  tmp_src['SDSS_FLAG_SRC'][k] = 2
                   #print 'out of the region!'
                else:
-                  self.lenses.SDSS_FLAG_SRC[k] = 1
+                  tmp_src['SDSS_FLAG_SRC'][k] = 1
                   #print 'zero'
                meanqq=zeros((50,20,9))
                errorqq=zeros((50,20,9))
@@ -637,12 +624,14 @@ class DB(object):
 
                om10q=wmeanq/wq+(-1.+2.*random.rand(9))*werrorq/wq
 
-            [self.lenses.MAGG_SRC[k], self.lenses.MAGR_SRC[k], self.lenses.MAGI_SRC[k], self.lenses.MAGZ_SRC[k],
-            self.lenses.MAGW1_SRC[k], self.lenses.MAGW2_SRC[k], self.lenses.MAGW3_SRC[k], self.lenses.MAGW4_SRC[k]] = om10q[1:]
+            [tmp_src['MAGG_SRC'][k], tmp_src['MAGR_SRC'][k], tmp_src['MAGI_SRC'][k], tmp_src['MAGZ_SRC'][k],
+            tmp_src['MAGW1_SRC'][k], tmp_src['MAGW2_SRC'][k], tmp_src['MAGW3_SRC'][k], tmp_src['MAGW4_SRC'][k]] = om10q[1:]
 
             #print "QSO Properties"
             #print "redshift   g     r     i     z     w1      w2       w3     w4"
             #print om10q
+
+        self.lenses = hstack([self.lenses,tmp_lens,tmp_src])
 
         return
 
