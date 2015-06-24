@@ -58,7 +58,7 @@ class DB(object):
     def __init__(self,catalog=None,generate=False):
 
         self.name = 'OM10 database'
-        self.catalog = catalog
+        self.catalog = os.path.expandvars(catalog)
 
         # Make a FITS table from the supplied text catalogs, if required:
         if generate:
