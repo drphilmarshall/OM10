@@ -211,7 +211,6 @@ class DB(object):
     # ------------------------------------------------------------------
 
     def write_table(self,catalog):
-        """
         try: os.remove(catalog)
         except OSError: pass
 
@@ -221,7 +220,6 @@ class DB(object):
             pyfits.writeto(catalog,self.sample)
 
         if vb: print "om10.DB: wrote catalog of ",self.Nlenses," OM10 lenses to file at "+catalog
-        """
         return
 
     # ------------------------------------------------------------------
@@ -435,9 +433,24 @@ class DB(object):
 
 # ----------------------------------------------------------------------------
 
-    def makeSimCatalog(self):
-        raise NotImplementedError
-        return
+    def make_sim_input_catalog(self):
+        n_obj = len(self.lenses)
+        n_tot_img = np.sum(self.lenses['NIMG'])
+        output_cols=['LENSID','RA','DEC','XIMG','YIMG','G','R','I','Z']
+        sim_cat = Table(np.zeros((n_tot_img+n_obj,len(output_cols)),dtype='>f8'),names=output_cols)
+        out_idx = 0
+        for lens in self.lenses:
+            sim_cat[out_idx] = (lens['LENSID'],lens['RA'],lens['DEC'],0,0,lens['MAGG_LENS'], \
+                                lens['MAGR_LENS'], lens['MAGI_LENS'], lens['MAGZ_LENS'])
+            out_idx += 1
+            mag_adjust = 2.5*np.log10(abs(lens['MAG'][lens['MAG'] != 0]))
+            for img in np.arange(lens['NIMG']):
+                sim_cat[out_idx] = (lens['LENSID'],lens['RA']-lens['XIMG'][img]/3600,lens['DEC']+lens['YIMG'][img]/3600,\
+                                    lens['XIMG'][img],lens['YIMG'][img],lens['MAGG_SRC']-mag_adjust[img], \
+                                    lens['MAGR_SRC']-mag_adjust[img], lens['MAGI_SRC']-mag_adjust[img],\
+                                    lens['MAGZ_SRC']-mag_adjust[img])
+                out_idx += 1
+        return sim_cat
 
 # ----------------------------------------------------------------------------
 
