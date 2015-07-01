@@ -434,12 +434,12 @@ class DB(object):
 # ----------------------------------------------------------------------------
 
     def make_sim_input_catalog(self):
-        n_obj = len(self.lenses)
-        n_tot_img = np.sum(self.lenses['NIMG'])
+        n_obj = len(self.sample)
+        n_tot_img = np.sum(self.sample['NIMG'])
         output_cols=['LENSID','RA','DEC','XIMG','YIMG','G','R','I','Z']
         sim_cat = Table(np.zeros((n_tot_img+n_obj,len(output_cols)),dtype='>f8'),names=output_cols)
         out_idx = 0
-        for lens in self.lenses:
+        for lens in self.sample:
             sim_cat[out_idx] = (lens['LENSID'],lens['RA'],lens['DEC'],0,0,lens['MAGG_LENS'], \
                                 lens['MAGR_LENS'], lens['MAGI_LENS'], lens['MAGZ_LENS'])
             out_idx += 1
@@ -559,7 +559,14 @@ class DB(object):
                meang=mlrg[kz_g,ko_g,:]/ng[kz_g,ko_g]
                errorg=sqrt(slrg[kz_g,ko_g,:]/ng[kz_g,ko_g]-meang**2)
                om10g=meang+(-1.+2.*random.rand(14))*errorg
+               [tmp_lens['MAGG_LENS'][k], tmp_lens['MAGR_LENS'][k], tmp_lens['MAGI_LENS'][k], tmp_lens['MAGZ_LENS'][k], \
+                tmp_lens['MAGW1_LENS'][k], tmp_lens['MAGW2_LENS'][k], tmp_lens['MAGW3_LENS'][k], tmp_lens['MAGW4_LENS'][k]] = om10g[6:]
+
             else:
+                tmp_lens['SDSS_FLAG_LENS'][k] = 1
+                [tmp_lens['MAGG_LENS'][k], tmp_lens['MAGR_LENS'][k], tmp_lens['MAGI_LENS'][k], tmp_lens['MAGZ_LENS'][k], \
+                tmp_lens['MAGW1_LENS'][k], tmp_lens['MAGW2_LENS'][k], tmp_lens['MAGW3_LENS'][k], tmp_lens['MAGW4_LENS'][k]] = (-99)*np.ones(8)
+            """
                if kz_g>49 or ko_g>19 or ko_g<0:
                   #print 'out of the region!'
                   tmp_lens['SDSS_FLAG_LENS'][k] = 2
@@ -587,9 +594,7 @@ class DB(object):
                        werrorg += errorgg[i,j,:]*e**(-disg[i,j])
 
                om10g=wmeang/wg+(-1.+2.*random.rand(14))*werrorg/wg
-
-            [tmp_lens['MAGG_LENS'][k], tmp_lens['MAGR_LENS'][k], tmp_lens['MAGI_LENS'][k], tmp_lens['MAGZ_LENS'][k],
-             tmp_lens['MAGW1_LENS'][k], tmp_lens['MAGW2_LENS'][k], tmp_lens['MAGW3_LENS'][k], tmp_lens['MAGW4_LENS'][k]] = om10g[6:]
+            """
 
             #print "Lens Properties"
             #print "redshift  sigma  g Reff  r   i    z   g mag   r mag   i mag   z   w1    w2    w3   w4"
@@ -608,7 +613,14 @@ class DB(object):
                meanq=mqso[kz_q,ko_q,:]/nq[kz_q,ko_q]
                errorq=sqrt(sqso[kz_q,ko_q,:]/nq[kz_q,ko_q]-meanq**2)
                om10q=meanq+(-1.+2.*random.rand(9))*errorq
+
+               [tmp_src['MAGG_SRC'][k], tmp_src['MAGR_SRC'][k], tmp_src['MAGI_SRC'][k], tmp_src['MAGZ_SRC'][k], \
+                tmp_src['MAGW1_SRC'][k], tmp_src['MAGW2_SRC'][k], tmp_src['MAGW3_SRC'][k], tmp_src['MAGW4_SRC'][k]] = om10q[1:]
             else:
+                tmp_src['SDSS_FLAG_SRC'][k] = 1
+                [tmp_src['MAGG_SRC'][k], tmp_src['MAGR_SRC'][k], tmp_src['MAGI_SRC'][k], tmp_src['MAGZ_SRC'][k], \
+                 tmp_src['MAGW1_SRC'][k], tmp_src['MAGW2_SRC'][k], tmp_src['MAGW3_SRC'][k], tmp_src['MAGW4_SRC'][k]] = (-99)*np.ones(8)
+                """
                if kz_q>49 or ko_q>19 or ko_q<0:
                   tmp_src['SDSS_FLAG_SRC'][k] = 2
                   #print 'out of the region!'
@@ -636,9 +648,7 @@ class DB(object):
                        werrorq += errorqq[i,j,:]*e**(-disq[i,j])
 
                om10q=wmeanq/wq+(-1.+2.*random.rand(9))*werrorq/wq
-
-            [tmp_src['MAGG_SRC'][k], tmp_src['MAGR_SRC'][k], tmp_src['MAGI_SRC'][k], tmp_src['MAGZ_SRC'][k],
-            tmp_src['MAGW1_SRC'][k], tmp_src['MAGW2_SRC'][k], tmp_src['MAGW3_SRC'][k], tmp_src['MAGW4_SRC'][k]] = om10q[1:]
+               """
 
             #print "QSO Properties"
             #print "redshift   g     r     i     z     w1      w2       w3     w4"
