@@ -1,7 +1,8 @@
 # ======================================================================
 
-import pyfits,sys,os,subprocess,math
+import sys,os,subprocess,math
 import numpy as np
+import astropy.io.fits as pyfits
 
 import om10
 
