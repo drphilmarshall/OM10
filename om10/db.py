@@ -72,8 +72,8 @@ class DB(object):
             self.lenses = Table.read(self.catalog,format='fits')
             #print self.lenses
 
-        # No down-sampling has been done yet:
-        self.sample = None
+        # No down-sampling has been done yet, but methods operate on sample:
+        self.sample = self.lenses.copy()
 
         # Count lenses:
         try: self.Nlenses = len(self.lenses['LENSID'])
@@ -83,207 +83,16 @@ class DB(object):
 
     # ------------------------------------------------------------------
 
-    def make_table(self):
-        """
-        # Read in lens data from original text catalog:
-
-        lensfile = os.path.expandvars("$OM10_DIR/data/qso_mock_result+lensphot+lensgeom.dat")
-        d = np.loadtxt(lensfile)
-        if vb: print "om10.DB: read in lens data from ",lensfile
-
-        # Put lens parameters in columns:
-
-        nim     = np.array(d[:, 0],dtype=np.int)
-        zd      = np.array(d[:, 1])
-        sigma   = np.array(d[:, 2])
-        zs      = np.array(d[:, 3])
-        ms      = np.array(d[:, 4])
-        m3      = np.array(d[:, 5])
-        dtheta  = np.array(d[:, 6])
-        epsd    = np.array(d[:, 7])
-        phid    = np.array(d[:, 8])
-        gammax  = np.array(d[:, 9])
-        phix    = np.array(d[:,10])
-        xs      = np.array(d[:,11])
-        ys      = np.array(d[:,12])
-        type    = np.array(d[:,13],dtype=np.int)
-        id      = np.array(d[:,14],dtype=np.int)
-        Dd      = np.array(d[:,15])
-        DLd     = np.array(d[:,16])
-        absmd   = np.array(d[:,17])
-        md      = np.array(d[:,18])
-        Kcorrd  = np.array(d[:,19])
-        Ds      = np.array(d[:,20])
-        Dds     = np.array(d[:,21])
-        Sigcrit = np.array(d[:,22])
-        DLs     = np.array(d[:,23])
-
-        size = len(id)
-
-        if vb: print "om10.DB: stored lens parameters for",size,"lenses"
-
-        if vb: print "om10.DB: pulling out image configurations..."
-
-        xs  = np.zeros([size])
-        ys  = np.zeros([size])
-        xi  = np.zeros([size,4])
-        yi  = np.zeros([size,4])
-        ti  = np.zeros([size,4])
-        mui = np.zeros([size,4])
-
-        # Loop through image log file, line by line, filling up image
-        # parameter arrays:
-
-        logfile = os.path.expandvars("$OM10_DIR/data/qso_mock_log.dat")
-
-        with open(logfile, "r") as file:
-
-            count = 0
-            for line in file:
-
-                x = line.split()
-
-                # print "line = ",x," length = ",len(x)
-
-                if (len(x) == 5):
-                    k = np.where(id == int(x[4]))
-                    k = k[0]
-                    xs[k] = float(x[1])
-                    ys[k] = float(x[2])
-                    # print "k = ",k," xs,ys = ",xs[k],ys[k]
-                    i = 0
-                    count += 1
-                else:
-                   xi[k,i]   = float(x[0])
-                   yi[k,i]   = float(x[1])
-                   mui[k,i]  = float(x[2])
-                   ti[k,i]   = float(x[3])
-                   # print "i = ",i," xi,yi,mui,ti = ",xi[k,i],yi[k,i],mui[k,i],ti[k,i]
-                   i += 1
-
-        file.close()
-
-        # Check numbers:
-        if (count != size):
-            print "ERROR: found %d lenses in logfile and %d in result file" % count,size
-
-        if vb: print "om10.DB: read in image parameters for",size,"lenses"
-
-        # Now package into a pyfits table:
-
-        self.lenses = []
-        self.lenses.append(pyfits.Column(name='LENSID  ',format='J       ',array=id))
-        self.lenses.append(pyfits.Column(name='FLAGTYPE',format='I       ',array=type))
-        self.lenses.append(pyfits.Column(name='NIMG    ',format='I       ',array=nim))
-        self.lenses.append(pyfits.Column(name='ZLENS   ',format='D       ',array=zd))
-        self.lenses.append(pyfits.Column(name='VELDISP ',format='D       ',array=sigma))
-        self.lenses.append(pyfits.Column(name='ELLIP   ',format='D       ',array=epsd))
-        self.lenses.append(pyfits.Column(name='PHIE    ',format='D       ',array=phid))
-        self.lenses.append(pyfits.Column(name='GAMMA   ',format='D       ',array=gammax))
-        self.lenses.append(pyfits.Column(name='PHIG    ',format='D       ',array=phix))
-        self.lenses.append(pyfits.Column(name='ZSRC    ',format='D       ',array=zs))
-        self.lenses.append(pyfits.Column(name='XSRC    ',format='D       ',array=xs))
-        self.lenses.append(pyfits.Column(name='YSRC    ',format='D       ',array=ys))
-        self.lenses.append(pyfits.Column(name='MAGI_IN ',format='D       ',array=ms))
-        self.lenses.append(pyfits.Column(name='MAGI    ',format='D       ',array=m3))
-        self.lenses.append(pyfits.Column(name='IMSEP   ',format='D       ',array=dtheta))
-        self.lenses.append(pyfits.Column(name='XIMG    ',format='4D      ',array=xi))
-        self.lenses.append(pyfits.Column(name='YIMG    ',format='4D      ',array=yi))
-        self.lenses.append(pyfits.Column(name='MAG     ',format='4D      ',array=mui))
-        self.lenses.append(pyfits.Column(name='DELAY   ',format='4D      ',array=ti))
-        self.lenses.append(pyfits.Column(name='KAPPA   ',format='4D      ',array=np.zeros([size,4])))
-        self.lenses.append(pyfits.Column(name='FSTAR   ',format='4D      ',array=np.zeros([size,4])))
-        self.lenses.append(pyfits.Column(name='DD      ',format='D       ',array=Dd))
-        self.lenses.append(pyfits.Column(name='DDLUM   ',format='D       ',array=DLd))
-        self.lenses.append(pyfits.Column(name='ABMAG_I ',format='D       ',array=absmd))
-        self.lenses.append(pyfits.Column(name='APMAG_I ',format='D       ',array=md))
-        self.lenses.append(pyfits.Column(name='KCORR   ',format='D       ',array=Kcorrd))
-        self.lenses.append(pyfits.Column(name='DS      ',format='D       ',array=Ds))
-        self.lenses.append(pyfits.Column(name='DDS     ',format='D       ',array=Dds))
-        self.lenses.append(pyfits.Column(name='SIGCRIT ',format='D       ',array=Sigcrit))
-        self.lenses.append(pyfits.Column(name='DSLUM   ',format='D       ',array=DLs))
-        self.lenses.append(pyfits.Column(name='L_I     ',format='D       ',array=np.zeros([size])))
-        self.lenses.append(pyfits.Column(name='REFF    ',format='D       ',array=np.zeros([size])))
-        self.lenses.append(pyfits.Column(name='REFF_T  ',format='D       ',array=np.zeros([size])))
-        """
-        return
-
-    # ------------------------------------------------------------------
-
     def write_table(self,catalog):
         try: os.remove(catalog)
         except OSError: pass
 
-        if self.sample is None:
+        if len(self.sample) == len(self.lenses):
             pyfits.writeto(catalog,self.lenses)
         else:
             pyfits.writeto(catalog,self.sample)
 
         if vb: print "om10.DB: wrote catalog of ",self.Nlenses," OM10 lenses to file at "+catalog
-        return
-
-    # ------------------------------------------------------------------
-
-    def export_to_cpt(self,pars,cptfile):
-        """
-        try: os.remove(cptfile)
-        except OSError: pass
-
-        if self.sample is None:
-            data = self.lenses
-        else:
-            data = self.sample
-
-        # Define labels and ranges for cpt files:
-        labels = {}
-        ranges = {}
-
-        labels['ZLENS']           = '$z_{\\rm d}$,  '
-        ranges['ZLENS']           = '0.0,2.5,    '
-
-        labels['ZSRC']            = '$z_{\\rm s}$,  '
-        ranges['ZSRC']            = '0.0,6.0,    '
-
-        labels['IMSEP']           = '$\\Delta \\theta / "$,  '
-        ranges['IMSEP']           = '0.0,5.0,    '
-
-        labels['APMAG_I']         = '$i_{\\rm d}$ / mag,  '
-        ranges['APMAG_I']         = '15.0,24.5,    '
-
-        labels['MAGI']            = '$i_{\\rm 2/3}$ / mag,  '
-        ranges['MAGI']            = '15.0,24.5,    '
-
-
-        # Write header lines:
-
-        hline1 = '# '
-        hline2 = '# '
-        for par in pars:
-            hline1 += labels[par]
-            hline2 += ranges[par]
-
-        # Prepare data for writing:
-
-        outbundle = np.zeros([self.Nlenses,len(pars)])
-
-        for k,par in enumerate(pars):
-            outbundle[:,k] = data[par]
-
-        # The actual writing:
-
-        output = open(cptfile,'w')
-        output.write("%s\n" % hline1)
-        output.write("%s\n" % hline2)
-        output.close()
-        np.savetxt('junk', outbundle)
-        cat = subprocess.call("cat junk >> " + cptfile, shell=True)
-        rm = subprocess.call("rm junk", shell=True)
-        if cat != 0 or rm != 0:
-          print "Error: write subprocesses failed in some way :-/"
-          sys.exit()
-
-        if vb: print "om10.DB: wrote a ",len(pars),"-column plain text file of ",len(data)," OM10 lenses to file at "+cptfile
-        """
         return
 
     # ------------------------------------------------------------------
@@ -302,7 +111,7 @@ class DB(object):
         # Select all lenses that meet the rough observing criteria:
 
         try:
-            sample = self.lenses.copy()
+            sample = self.sample.copy()
             sample = sample[sample['MAGI'] < maglim]
             sample = sample[sample['IMSEP'] > 0.67*IQ]
         except:
@@ -377,57 +186,45 @@ class DB(object):
         reallyverbose = verbose
 
         # Prepare new columns for LRG properties:
-        size = len(self.lenses['LENSID'])
-        dummy = np.zeros(size)
-        print size
-        #cols = []
-        #cols.append(pyfits.Column(name='RA',format='D       ',array=dummy))
-        #cols.append(pyfits.Column(name='DEC',format='D       ',array=dummy))
-
-        self.lenses['RA'] = 0.0
-        self.lenses['DEC'] = 0.0
-
-        #self.lenses.columns.add_col(pyfits.Column(name='RA',format='D       ',array=dummy))
-        #self.lenses.columns.add_col(pyfits.Column(name='DEC',format='D       ',array=dummy))
-        #new_cols = pyfits.ColDefs(cols)
-        #self.lenses = pyfits.FITS_rec.from_columns(orig_cols + new_cols)
+        self.sample['RA'] = 0.0
+        self.sample['DEC'] = 0.0
 
         # First digitize the lenses to the same bins as the LRGs:
 
-        ii = np.digitize(self.lenses['APMAG_I'],self.LRGs['ibins'])
-        iz = np.digitize(self.lenses['ZLENS'],self.LRGs['zbins'])
+        ii = np.digitize(self.sample['APMAG_I'],self.LRGs['ibins'])
+        iz = np.digitize(self.sample['ZLENS'],self.LRGs['zbins'])
 
         # Loop over lenses, finding all LRGs in its bin:
 
-        for k in range(len(self.lenses)):
+        for k in range(len(self.sample)):
             iindex = list(np.where(self.LRGs['ivals'] == ii[k])[0])
             zindex = list(np.where(self.LRGs['zvals'] == iz[k])[0])
             i = list(set(iindex).intersection(set(zindex)))
 
             if len(i) == 0:
                 if reallyverbose: print "WARNING: Lens ",k," has no matching LRG..."
-                self.lenses['RA'][k]       = -99
-                self.lenses['DEC'][k]      = -99
+                self.sample['RA'][k]       = -99
+                self.sample['DEC'][k]      = -99
                 pass
 
             else:
                 if reallyverbose: print "Lens ",k," has ",len(i)," neighbour LRGs... "
 
                 # Compute distances to find nearest neighbour:
-                i0 = self.lenses['APMAG_I'][k]
-                z0 = self.lenses['ZLENS'][k]
+                i0 = self.sample['APMAG_I'][k]
+                z0 = self.sample['ZLENS'][k]
                 R = np.sqrt((self.LRGs['mag_i'][i]-i0)**2 + (self.LRGs['redshift'][i])**2)
                 best = np.where(R == np.min(R))
                 ibest = i[best[0][0]]
                 if reallyverbose:
                     print "  LRG  i,z: ",self.LRGs['mag_i'][ibest],self.LRGs['redshift'][ibest]
 
-                self.lenses['RA'][k]       = self.LRGs['RA'][ibest]
-                self.lenses['DEC'][k]      = self.LRGs['DEC'][ibest]
+                self.sample['RA'][k]       = self.LRGs['RA'][ibest]
+                self.sample['DEC'][k]      = self.LRGs['DEC'][ibest]
 
             if reallyverbose:
-                print "  Lens i,z: ",self.lenses['APMAG_I'][k],self.lenses['ZLENS'][k]
-                print "  Lens RA,DEC: ",self.lenses['RA'][k],self.lenses['DEC'][k]
+                print "  Lens i,z: ",self.sample['APMAG_I'][k],self.sample['ZLENS'][k]
+                print "  Lens RA,DEC: ",self.sample['RA'][k],self.sample['DEC'][k]
 
         return
 
@@ -437,7 +234,10 @@ class DB(object):
         n_obj = len(self.sample)
         n_tot_img = np.sum(self.sample['NIMG'])
         output_cols=['LENSID','RA','DEC','XIMG','YIMG','G','R','I','Z']
-        sim_cat = Table(np.zeros((n_tot_img+n_obj,len(output_cols)),dtype='>f8'),names=output_cols)
+
+        sim_cat = Table(np.zeros((n_tot_img+n_obj,len(output_cols)), \
+        dtype=('>i4', '>f8', '>f8', '>f8', '>f8', '>f8', '>f8', '>f8', '>f8')),names=output_cols)
+
         out_idx = 0
         for lens in self.sample:
             sim_cat[out_idx] = (lens['LENSID'],lens['RA'],lens['DEC'],0,0,lens['MAGG_LENS'], \
@@ -473,17 +273,16 @@ class DB(object):
         src_props = ['MAGG_SRC','MAGR_SRC','MAGI_SRC','MAGZ_SRC', \
         'MAGW1_SRC','MAGW2_SRC','MAGW3_SRC','MAGW4_SRC', 'SDSS_FLAG_SRC']
 
-        tmp_lens = Table(np.zeros((len(self.lenses),len(lens_props)),dtype='f8'),names=lens_props)
-        tmp_src = Table(np.zeros((len(self.lenses),len(src_props)),dtype='f8'),names=src_props)
+        tmp_lens = Table(np.zeros((len(self.sample),len(lens_props)),dtype='f8'),names=lens_props)
+        tmp_src = Table(np.zeros((len(self.sample),len(src_props)),dtype='f8'),names=src_props)
 
         if verbose: print 'setup done'
 
         lrg_sort = lrg[np.argsort(lrg[:,0]),:]
         qso_sort = qso[np.argsort(qso[:,0]),:]
-        print lrg_sort
         lens_count = 0
 
-        for lens in self.lenses:
+        for lens in self.sample:
 
             #paint lens
             ind = np.searchsorted(lrg_sort[:,0],lens['ZLENS'])
@@ -500,7 +299,7 @@ class DB(object):
 
             lens_count += 1
 
-        self.lenses = hstack([self.lenses,tmp_lens,tmp_src])
+        self.sample = hstack([self.sample,tmp_lens,tmp_src])
 
         return
 
