@@ -286,16 +286,12 @@ class DB(object):
 
             #paint lens
             ind = np.searchsorted(lrg_sort[:,0],lens['ZLENS'])
-            #if np.random.rand(1) > .5:
-            #    ind += 1 #randomly choose one of two nearest neighbors
             if ind >= len(lrg_sort): ind = len(lrg_sort) - 1
-            tmp_lens[lens_count] = lrg_sort[ind,6:]
+            tmp_lens[lens_count] = lrg_sort[ind,6:] - lrg_sort[ind,8] + lens['APMAG_I'] #assign colors, not mags
             #paint source
             qso_ind = np.searchsorted(qso_sort[:,0],lens['ZSRC'])
             if qso_ind >= len(qso_sort): qso_ind = len(qso_sort) - 1
-            #if np.random.rand(1) > .5:
-            #    ind += 1 #randomly choose one of two nearest neighbors
-            tmp_src[lens_count] = qso_sort[qso_ind,1:]
+            tmp_src[lens_count] = qso_sort[qso_ind,1:] - qso_sort[qso_ind,3] + lens['MAGI']
 
             lens_count += 1
 
