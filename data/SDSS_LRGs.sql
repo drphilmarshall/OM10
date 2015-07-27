@@ -4,8 +4,21 @@
 # Based on the sample photo-z and LRG queries at 
 #   http://skyserver.sdss.org/dr12/en/help/docs/realquery.aspx#photoz
 #   http://skyserver.sdss.org/dr12/en/help/docs/realquery.aspx#lrg
+#  
+# We tried shuffling the sky positions to get a wider area sampling, but 
+# this resulted in a timeout. The code to do this is "SELECT * FROM ... 
+# WHERE ... and randn() < 0.0001. This should have returned one ten 
+# thousandth of the search results, randomly ordered.
+# 
+# After executing the query, which takes a few mins, the resulting csv data
+# can be downloaded from teh browser window by selecting all, copying and 
+# pasting. To edit into OM10 .txt format, do:
+# 
+# cat SDSS_LRGs.csv | sed s/','/'  '/g | sed s/'ra'/'# ra'/g | \
+#                       sed s/'dered'/'mag'/g | grep -v '\-9999' > SDSS_LRGs.txt
+#
 
-SELECT
+SELECT TOP 10000
  ra, 
  dec,
  pz.z,
@@ -44,5 +57,4 @@ SELECT
  and (pz.z BETWEEN 0.0 and 0.9)
  and (pz.photoErrorClass=1)
  and (pz.nnCount>95)
- and (pz.zErr BETWEEN 0 and 0.03 )
- and rand() <= 0.0001 )
+ and (pz.zErr BETWEEN 0 and 0.03 ) )
