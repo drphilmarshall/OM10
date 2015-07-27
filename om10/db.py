@@ -145,7 +145,7 @@ class DB(object):
     def get_sky_positions(self,dmag=0.2,dz=0.2,input_cat='$OM10_DIR/data/CFHTLS_LRGs.txt'):
 
         LRGfile = os.path.expandvars(input_cat)
-	try:
+        try:
             d = np.loadtxt(LRGfile)
         except IOError:
             print "Cannot find LRG catalog!"
@@ -157,9 +157,16 @@ class DB(object):
         self.LRGs['RA']       = np.array(d[:, 0])
         self.LRGs['DEC']      = np.array(d[:, 1])
         self.LRGs['redshift'] = np.array(d[:, 2])
+        self.LRGs['g-r']      = np.array(d[:, 4]) - np.array(d[:, 5])
+        self.LRGs['r-i']      = np.array(d[:, 5]) - np.array(d[:, 6])
         self.LRGs['mag_i']    = np.array(d[:, 6])
 
-        print "Mean LRG RA,DEC,z,i = ",np.average(self.LRGs['RA']),np.average(self.LRGs['DEC']),np.average(self.LRGs['redshift']),np.average(self.LRGs['mag_i']);
+        print "Mean LRG RA,DEC,z = ",np.average(self.LRGs['RA']),np.average(self.LRGs['DEC']),np.average(self.LRGs['redshift']),np.average(self.LRGs['mag_i']);
+        print "Mean LRG i,(g-r) = ",np.average(self.LRGs['RA']),np.average(self.LRGs['DEC']),np.average(self.LRGs['redshift']),np.average(self.LRGs['mag_i']);
+
+        # Need to upgrade the algorithm below to work well in 3 or
+        # 4D, to use color information. Start with g-r, as well as i
+        # and z, and then check other colors are sensible. #22
 
         # Bin LRGs in mag_i and redshift, and record bin numbers for each one:
 
