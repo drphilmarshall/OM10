@@ -50,21 +50,21 @@ def plot_lens(lens,saveImg=False):
         except: pass
 
     # Pull out data for ease of use:
-    id = lens.LENSID[0]
-    xi = lens.XIMG[0]
-    yi = lens.YIMG[0]
-    nim = lens.NIMG[0]
-    mui = lens.MAG[0]
-    md = lens.APMAG_I[0]
-    ms = lens.MAGI_IN[0]
-    xs = lens.XSRC[0]
-    ys = lens.YSRC[0]
+    id = lens['LENSID'][0]
+    xi = lens['XIMG'][0]
+    yi = lens['YIMG'][0]
+    nim = lens['NIMG'][0]
+    mui = lens['MAG'][0]
+    md = lens['APMAG_I'][0]
+    ms = lens['MAGI_IN'][0]
+    xs = lens['XSRC'][0]
+    ys = lens['YSRC'][0]
     xd = 0.0
     yd = 0.0
-    zd = lens.ZLENS[0]
-    zs = lens.ZSRC[0]
-    q = 1.0 - lens.ELLIP[0]
-    phi = lens.PHIE[0]
+    zd = lens['ZLENS'][0]
+    zs = lens['ZSRC'][0]
+    q = 1.0 - lens['ELLIP'][0]
+    phi = lens['PHIE'][0]
 
     print "om10.plot_lens: plotting image configuration of lens ID ",id
 
