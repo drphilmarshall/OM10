@@ -6,6 +6,8 @@ import os
 from numpy import *
 import math
 from astropy.table import Table, hstack
+from sklearn.neighbors import NearestNeighbors
+from sklearn import preprocessing
 
 # from astropy.table import Table
 
@@ -152,6 +154,7 @@ class DB(object):
         if vb: print "om10.DB: read in LRG sky position data from ",LRGfile
 
         # Put LRG parameters in LRG structure:
+        # RA DEC z mag_u mag_g mag_r mag_i mag_z
 
         self.LRGs = {}
         self.LRGs['RA']       = np.array(d[:, 0])
@@ -159,28 +162,15 @@ class DB(object):
         self.LRGs['redshift'] = np.array(d[:, 2])
         self.LRGs['g-r']      = np.array(d[:, 4]) - np.array(d[:, 5])
         self.LRGs['r-i']      = np.array(d[:, 5]) - np.array(d[:, 6])
+        self.LRGs['i-z']      = np.array(d[:, 6]) - np.array(d[:, 7])
         self.LRGs['mag_i']    = np.array(d[:, 6])
+        features = np.array([self.LRGs['redshift'], self.LRGs['g-r'], self.LRGs['r-i'], self.LRGs['i-z'], self.LRGs['mag_i']]).transpose()
+        self.LRGs['feature_scaler'] = preprocessing.StandardScaler().fit(features)
+        scaled_features = self.LRGs['feature_scaler'].transform(features)
+        self.LRGs['nbrFinder'] = NearestNeighbors(n_neighbors=1,algorithm='auto',metric='euclidean').fit(scaled_features)
 
         print "Mean LRG RA,DEC,z = ",np.average(self.LRGs['RA']),np.average(self.LRGs['DEC']),np.average(self.LRGs['redshift']),np.average(self.LRGs['mag_i']);
         print "Mean LRG i,(g-r) = ",np.average(self.LRGs['RA']),np.average(self.LRGs['DEC']),np.average(self.LRGs['redshift']),np.average(self.LRGs['mag_i']);
-
-        # Need to upgrade the algorithm below to work well in 3 or
-        # 4D, to use color information. Start with g-r, as well as i
-        # and z, and then check other colors are sensible. #22
-
-        # Bin LRGs in mag_i and redshift, and record bin numbers for each one:
-
-        imin,imax = np.min(self.LRGs['mag_i']),np.max(self.LRGs['mag_i'])
-        nibins = int((imax - imin)/dmag) + 1
-        ibins = np.linspace(imin, imax, nibins)
-        self.LRGs['ivals'] = np.digitize(self.LRGs['mag_i'],ibins)
-        self.LRGs['ibins'] = ibins
-
-        zmin,zmax = np.min(self.LRGs['redshift']),np.max(self.LRGs['redshift'])
-        nzbins = int((zmax - zmin)/dz) + 1
-        zbins = np.linspace(zmin, zmax, nzbins)
-        self.LRGs['zvals'] = np.digitize(self.LRGs['redshift'],zbins)
-        self.LRGs['zbins'] = zbins
 
         if vb: print "om10.DB: number of LRGs stored = ",len(self.LRGs['redshift'])
 
@@ -190,50 +180,34 @@ class DB(object):
 
     def assign_sky_positions(self,verbose=False):
 
+        #try:
+        #    tmp = self.sample.['MAGG_LENS'][0]
+        #except :
+
         reallyverbose = verbose
 
         # Prepare new columns for LRG properties:
         self.sample['RA'] = 0.0
         self.sample['DEC'] = 0.0
 
-        # First digitize the lenses to the same bins as the LRGs:
+        scaler = self.LRGs['feature_scaler']
+        index_list = []
 
-        ii = np.digitize(self.sample['APMAG_I'],self.LRGs['ibins'])
-        iz = np.digitize(self.sample['ZLENS'],self.LRGs['zbins'])
+        for lens in self.sample:
+            lens_features = np.array([lens['ZLENS'], lens['MAGG_LENS']-lens['MAGR_LENS'], \
+            lens['MAGR_LENS']-lens['MAGI_LENS'], lens['MAGI_LENS']-lens['MAGZ_LENS'], lens['APMAG_I']])
 
-        # Loop over lenses, finding all LRGs in its bin:
-
-        for k in range(len(self.sample)):
-            iindex = list(np.where(self.LRGs['ivals'] == ii[k])[0])
-            zindex = list(np.where(self.LRGs['zvals'] == iz[k])[0])
-            i = list(set(iindex).intersection(set(zindex)))
-
-            if len(i) == 0:
-                if reallyverbose: print "WARNING: Lens ",k," has no matching LRG..."
-                self.sample['RA'][k]       = -99
-                self.sample['DEC'][k]      = -99
-                pass
-
-            else:
-                if reallyverbose: print "Lens ",k," has ",len(i)," neighbour LRGs... "
-
-                # Compute distances to find nearest neighbour:
-                i0 = self.sample['APMAG_I'][k]
-                z0 = self.sample['ZLENS'][k]
-                R = np.sqrt((self.LRGs['mag_i'][i]-i0)**2 + (self.LRGs['redshift'][i])**2)
-                best = np.where(R == np.min(R))
-                ibest = i[best[0][0]]
-                if reallyverbose:
-                    print "  LRG  i,z: ",self.LRGs['mag_i'][ibest],self.LRGs['redshift'][ibest]
-
-                self.sample['RA'][k]       = self.LRGs['RA'][ibest]
-                self.sample['DEC'][k]      = self.LRGs['DEC'][ibest]
+            scaled_lens_features = scaler.transform(lens_features)
+            distance, index = self.LRGs['nbrFinder'].kneighbors(scaled_lens_features)
+            index_list.append(index)
+            lens['RA'] = self.LRGs['RA'][index]
+            lens['DEC'] = self.LRGs['DEC'][index]
 
             if reallyverbose:
                 print "  Lens i,z: ",self.sample['APMAG_I'][k],self.sample['ZLENS'][k]
                 print "  Lens RA,DEC: ",self.sample['RA'][k],self.sample['DEC'][k]
 
-        return
+        return index_list
 
 # ----------------------------------------------------------------------------
 
