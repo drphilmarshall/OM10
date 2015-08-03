@@ -164,7 +164,7 @@ class DB(object):
         self.LRGs['r-i']      = np.array(d[:, 5]) - np.array(d[:, 6])
         self.LRGs['i-z']      = np.array(d[:, 6]) - np.array(d[:, 7])
         self.LRGs['mag_i']    = np.array(d[:, 6])
-        features = np.array([self.LRGs['redshift'], self.LRGs['g-r'], self.LRGs['r-i'], self.LRGs['i-z'], self.LRGs['mag_i']])
+        features = np.array([self.LRGs['redshift'], self.LRGs['g-r'], self.LRGs['r-i'], self.LRGs['i-z'], self.LRGs['mag_i']]).transpose()
         self.LRGs['feature_scaler'] = preprocessing.StandardScaler().fit(features)
         scaled_features = self.LRGs['feature_scaler'].transform(features)
         self.LRGs['nbrFinder'] = NearestNeighbors(n_neighbors=1,algorithm='auto',metric='euclidean').fit(scaled_features)
@@ -191,6 +191,7 @@ class DB(object):
         self.sample['DEC'] = 0.0
 
         scaler = self.LRGs['feature_scaler']
+        index_list = []
 
         for lens in self.sample:
             lens_features = np.array([lens['ZLENS'], lens['MAGG_LENS']-lens['MAGR_LENS'], \
@@ -198,6 +199,7 @@ class DB(object):
 
             scaled_lens_features = scaler.transform(lens_features)
             distance, index = self.LRGs['nbrFinder'].kneighbors(scaled_lens_features)
+            index_list.append(index)
             lens['RA'] = self.LRGs['RA'][index]
             lens['DEC'] = self.LRGs['DEC'][index]
 
@@ -205,7 +207,7 @@ class DB(object):
                 print "  Lens i,z: ",self.sample['APMAG_I'][k],self.sample['ZLENS'][k]
                 print "  Lens RA,DEC: ",self.sample['RA'][k],self.sample['DEC'][k]
 
-        return
+        return index_list
 
 # ----------------------------------------------------------------------------
 
