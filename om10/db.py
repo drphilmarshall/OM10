@@ -1,9 +1,10 @@
 # ======================================================================
 
-import pyfits,sys,os,subprocess
+import sys,os,subprocess
 import numpy as np
 
 # from astropy.table import Table
+import astropy.io.fits as pyfits
 
 import om10
 
@@ -434,6 +435,7 @@ if __name__ == '__main__':
 # To read in an old FITS catalog:
 
     db = om10.DB(catalog=os.path.expandvars("$OM10_DIR/data/qso_mock.fits"))
+
 # Get one lens:
 
 #     id = 7176527
