@@ -10,6 +10,7 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn import preprocessing
 
 # from astropy.table import Table
+import astropy.io.fits as pyfits
 
 import om10
 
