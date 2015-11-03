@@ -6,9 +6,9 @@ David Finley, Elise Jennings, Phil Marshall
 
 ## Getting set up
 
-- PM and DF created [OM10 fork for DF](https://github.com/davidfinley/OM10)
+- PM and DF created an [OM10 fork for DF](https://github.com/davidfinley/OM10)
 - PM modified OM10 to allow use of astropy
-- PM set up the `.ini` files so that `cosmosis` can be run from the OM10 examples folder:
+- PM set up the `.ini` files so that `cosmosis` can be run from the OM10 examples folder, like this:
 ```
 cd examples/LSST
 bash
@@ -66,6 +66,17 @@ cosmological_parameters--w   -9.135106e-01   2.050209e-01
 cosmological_parameters--wa   -6.870567e-03   2.631039e-01
 like   -inf   nan
 ```
-The `omega_m` PDF is broad, but does seem to be shifted somewhat to higher values (0.57 +/- 0.18) - we should re-run with a different sample and check this. The Hubble constant `h` (0.713 +/- 0.007) is possibly also shifted low (but less significantly). Nice to see 1% precision even with freely varying curvature and Dark Energy parameters. Likewise, nice to see `omega_k` come out to be (-0.00002 +/- 0.00016). Its possible that this is a result of mismatched sampling distribution (when generating data) and likelihood; it could also just be a phase space effect, from the large uniform prior volume in the other parameters. First step should be to make a "corner plot" showing all 1 and 2-D marginalized PDFs.
+- The `omega_m` PDF is broad, but does seem to be shifted somewhat to higher values (0.57 +/- 0.18) - we should re-run with a different sample and check this. 
+- The Hubble constant `h` (0.713 +/- 0.007) is possibly also shifted low (but less significantly). Nice to see 1% precision even with freely varying curvature and Dark Energy parameters. 
+- Likewise, nice to see `omega_k` come out to be (-0.00002 +/- 0.00016) (very high precision!), and the Dark Energy parameters inferred from strong lensing alone (albeit with precision +/-0.2 in `w0` and +/-0.26 `wa`).  
+- It's possible that the `omega-m` bias (if it's real) is a result of mismatched sampling distribution (when generating data) and likelihood; it could also just be a phase space effect, from the large uniform prior volume in the other parameters. 
+
+## Next Steps
+
+- First we need to make a "corner plot" showing all 1 and 2-D marginalized PDFs, to look for parameter degeneracies and volume effects. Converting these notes into an IPython notebook would enable that.
+- We need to check that using $\lambda_D = 0.0$ gives reasonable sampling distributions for our distances. Suyu et al needed a much higher offset, so that the shape of the PDF came out right. *Probably* an unoffset lognormal is OK, but let's make some simple test plots with different $\lambda$ values and see how they look.
+- It would be interesting to do a run with the Planck likelihood included, to see how much we can learn about the Dark Energy parameters from CMB + time delay lenses. And then of course we'd like to see how SL interacts with the other probes in a DESC-wide forecast.
+
+## Issues
 
 - PM wrote two `cosmosis` issues about 1) [the samples with `-inf` log likelihood being accepted by `emcee` and then used by `postprocess`](https://bitbucket.org/joezuntz/cosmosis/issues/119/do-emcee-and-postprocess-deal-correctly), and 2) [the contents (header line? credible intervals?) of the `medians.txt` file.](https://bitbucket.org/joezuntz/cosmosis/issues/118/medians-file-contains-incorrect-header)
