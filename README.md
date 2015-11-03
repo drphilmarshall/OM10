@@ -1,8 +1,7 @@
-OM10
-====
+# OM10
 
 <a href='https://travis-ci.org/drphilmarshall/OM10'>
-<img src='https://secure.travis-ci.org/drphilmarshall/OM10.png?branch=unittest'></a>
+<img src='https://secure.travis-ci.org/drphilmarshall/OM10.png?branch=master'></a>
 
 Tools for working with the Oguri &amp; Marshall (2010) mock catalog of strong gravitational lenses
 
@@ -16,15 +15,15 @@ Edit the following lines and add them to your `.login` file:
 Now you can just:
 
     import om10
-    
+
 You'll need `pyfits` and `matplotlib` too.
 
 ### Example use
 
 Read in the master FITS catalog and look up one system:    
-        
+
     db = om10.DB(catalog="data/qso_mock.fits")
-    
+
     id = 7176527
     lens = db.get_lens(id)
 
@@ -38,10 +37,9 @@ Select a mock LSST sample:
 
 ### License, Credits
 
-This code is distributed under GPL v2.
+This code is distributed under the MIT license, and is being developed by Marshall and Baumer (KIPAC), Liao (UCLA) and Agnello (UCLA).
 
-If you use the OM10 mock lens catalog in your research, please cite [Oguri &amp; Marshall
-(2010)](http://adsabs.harvard.edu/abs/2010MNRAS.405.2579O). Here's the bibtex for you!
+If you use the OM10 mock lens catalog in your research, please cite [Oguri &amp; Marshall (2010)](http://adsabs.harvard.edu/abs/2010MNRAS.405.2579O). Here's the bibtex for you!
 
     @OM10,
        author = {{Oguri}, M. and {Marshall}, P.~J.},
