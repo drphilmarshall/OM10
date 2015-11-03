@@ -1,23 +1,25 @@
-# Cosmology Forecasts from OM10 Time Delays with CosmoSIS
+# CosmoSIS Cosmology Forecasts from OM10 Lensed Quasar Time Delays
 
-* LSST DESC Hack Day, October 30 2015, Argonne National Lab *
+*LSST DESC Hack Day, October 30 2015, Argonne National Lab*
 
 David Finley, Elise Jennings, Phil Marshall
 
-First:
+## Getting set up
+
 - PM and DF created [OM10 fork for DF](https://github.com/davidfinley/OM10)
 - PM modified OM10 to allow use of astropy
-
 - PM set up the `.ini` files so that `cosmosis` can be run from the OM10 examples folder:
 ```
+cd examples/LSST
 bash
 export COSMOSIS_SRC_DIR = /Users/pjm/work/stronglensing/LSST/DESC/Cosmology/cosmosis
 source ${COSMOSIS_SRC_DIR}/config/setup-cosmosis
 ```
 
-MOCK DATA:
-- Used OM10 catalog to make 466 $(z_d, z_s)$ pairs at `OM10_LSSTDESC_zd_zs.txt`
-- Lens system selection was as follows:
+## Making Mock Data
+
+- DF and PM used the OM10 catalog to make 466 $(z_d, z_s)$ pairs at `OM10_LSSTDESC_zd_zs.txt`
+- The lens system selection was as follows:
 ```python
 maglim = 22.0   # Faintest image must be well detected
 area = 18000.0  # LSST WFD survey area (sq deg)
@@ -26,15 +28,17 @@ APMAG_I < 21.0  # Bright lens galaxies for follow-up velocity dispersions
 DELAY > 10.0    # Longish time delays (days)
 ```
 
-- EJ used [Suyu et al (2010)](http://arxiv.org/pdf/0910.2773.pdf) to create CosmoSIS modules to take $(z_d, z_s)$ from above and append mock observations $(D_{\Delta t}, \sigma_{\Delta t})$. We assumed $\sigma_{\Delta t} = 0.05$ (5% precision per lens).
+- EJ used [Suyu et al (2010)](http://arxiv.org/pdf/0910.2773.pdf) to create a CosmoSIS module to take $(z_d, z_s)$ from above and append mock observations $(D_{\Delta t}, \sigma_{\Delta t})$. We assumed $\sigma_{\Delta t} = 0.05$ (5% precision per lens). The time delay distance "data" are drawn from a lognormal sampling distribution, as used by Suyu et al. We used an offset ($\lambda_D$) of 0.0, though, to allow all lenses to be treated the same way. We need to check that this does actually give plausible sampling distributions...
 - DF and PM ran the modules on 466 lenses with:
 ```
     cosmosis OM10_LSSTDESC_generate.ini
 ```
-This results in a new plain text data file, with 4 columns: `OM10_LSSTDESC_mock_data.txt`
+This resulted in a new 466-row plain text data file, with 4 columns: `OM10_LSSTDESC_mock_data.txt`
 
-- EJ created CosmoSIS modules for MOCK COSMOLOGICAL PARAMETER INFERENCE
-- DF and PM used the second CosmoSIS module created by EJ in the `develop` branch of the CosmoSIS repository to take the mock data for 466 lenses and infer $H_0$, etc,
+## Inferring cosmological parameters
+
+- EJ extended the CosmoSIS module for time delay distance cosmography in the `develop` branch to use our mock data.
+- DF and PM used this module to take the mock data for 466 lenses and infer $H_0$, etc,
 ```
 	cosmosis OM10_LSSTDESC_inference.ini
 ```
