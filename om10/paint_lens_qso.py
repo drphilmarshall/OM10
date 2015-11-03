@@ -1,5 +1,6 @@
 from numpy import *
 import math
+import os
 """
     NAME
         paint_lens_qso
@@ -7,50 +8,50 @@ import math
     PURPOSE
         to get the complete properties of lens and qso, given redshifts, velocity dispersion, i band magnitude of qso.
 
-    
+
     INITIALISATION
         change the inputs at the beginning: z_om10_g (redshift of lens),
         sigma_om10 (velocity dispersion),z_om10_q (redshift of qso),i_q (i band magnitude).
-        
+
 
     OUTPUT:
         case1: if it prints "out of region!", your inputs are out of
-            z_om10_g:0-1, sigma_om10: 80-400, z_om10_q:0-5, i_q: 15-22
+            z_om10_g:0-1, sigma_om10: 80-400, z_om10_q:0-5, i_q: 15-22 (sdss_flag = 2)
 
-        case2:if it prints "non-zero", the outputs are directly from SDSS
+        case2:if it prints "non-zero", the outputs are directly from SDSS (sdss_flag = 0)
 
         case3:if it prints "zero", there is no SDSS data aroud your inputs,
-             outputs are obtained based on weighted values from all SDSS data. This is the same as case1.
+             outputs are obtained based on weighted values from all SDSS data. This is the same as case1. (sdss_flag = 1)
 
-        Lens Properties          
+        Lens Properties
         redshift  sigma  g Reff  r   i    z   g mag   r mag   i mag   z   w1    w2    w3   w4
-        QSO Properties          
-        redshift   g     r     i     z     w1      w2       w3     w4  
-   
+        QSO Properties
+        redshift   g     r     i     z     w1      w2       w3     w4
+
     AUTHORS
       Kai Liao & aagnello
 
     COMMENTS
-        this script is based on Adri's mathematica version, Kai converted it to Python and added some modification.  
+        this script is based on Adri's mathematica version, Kai converted it to Python and added some modification.
 
     HISTORY
       2014-07-23  Kai & aanello
     """
 
 
-######### Input:
+######### Input ZLENS, VELDISP, ZSRC, MAG_I_SRC:
 z_om10_g=0.9
-sigma_om10=60.
+sigma_om10=300.
 z_om10_q=4.5
-i_q=14.5
+i_q=20
 
 
 ## read data from SDSS
-f=open('$OM10_DIR/data/LRGo.txt','r')
+f=open(os.path.expandvars('$OM10_DIR/data/LRGo.txt'),'r')
 lrg=loadtxt(f)
 f.close()
 #print lrg[0,0],lrg.shape
-g=open('$OM10_DIR/data/QSOo.txt','r')
+g=open(os.path.expandvars('$OM10_DIR/data/QSOo.txt'),'r')
 qso=loadtxt(g)
 g.close()
 #print qso[0,0],qso.shape
@@ -81,11 +82,11 @@ sqso=zeros((50,20,9))
 ##########
 
 for i in range(lrg.shape[0]):
-    
+
     sigma=lrg[i,1]*(2.45/2.0)**0.5*(lrg[i,3]/RSDSS)**-0.066
     kz=math.ceil((lrg[i,0]-zmin)/step1)-1
     ko=math.ceil((sigma-sming)/step2)-1
-    
+
     if -1<kz<50 and -1<ko<20:
        ng[kz,ko]+=1
        mlrg[kz,ko,:]+=lrg[i,:]
@@ -101,10 +102,10 @@ for i in range(lrg.shape[0]):
 ###########
 
 for j in range(qso.shape[0]):
-    
+
     kz=math.ceil((qso[j,0]-zmin)/step3)-1
     ko=math.ceil((qso[j,3]-imin)/step4)-1
-    
+
     if -1<kz<50 and -1<ko<20:
        nq[kz,ko]+=1
        mqso[kz,ko,:]+=qso[j,:]
@@ -122,7 +123,7 @@ for j in range(qso.shape[0]):
 kz_g=math.ceil((z_om10_g-zmin)/step1)-1
 ko_g=math.ceil((sigma_om10-sming)/step2)-1
 if kz_g<50 and -1<ko_g<20 and ng[kz_g,ko_g]>0:
-   
+
    print 'non-zero'
    meang=mlrg[kz_g,ko_g,:]/ng[kz_g,ko_g]
    errorg=sqrt(slrg[kz_g,ko_g,:]/ng[kz_g,ko_g]-meang**2)
@@ -138,7 +139,7 @@ else:
    wmeang=zeros(14)
    werrorg=zeros(14)
    wg=0
-   
+
    for i in range(50):
        for j in range(20):
            if ng[i,j]>0:
@@ -151,10 +152,10 @@ else:
            wmeang += meangg[i,j,:]*e**(-disg[i,j])
            wg +=e**(-disg[i,j])
            werrorg += errorgg[i,j,:]*e**(-disg[i,j])
-           
+
    om10g=wmeang/wg+(-1.+2.*random.rand(14))*werrorg/wg
-print "Lens Properties"           
-print "redshift  sigma  g Reff  r   i    z   g mag   r mag   i mag   z   w1    w2    w3   w4"   
+print "Lens Properties"
+print "redshift  sigma  g Reff  r   i    z   g mag   r mag   i mag   z   w1    w2    w3   w4"
 print om10g
 
 
@@ -180,7 +181,7 @@ else:
    wmeanq=zeros(9)
    werrorq=zeros(9)
    wq=0
-   
+
    for i in range(50):
        for j in range(20):
            if nq[i,j]>0:
@@ -193,18 +194,8 @@ else:
            wmeanq += meanqq[i,j,:]*e**(-disq[i,j])
            wq +=e**(-disq[i,j])
            werrorq += errorqq[i,j,:]*e**(-disq[i,j])
-           
+
    om10q=wmeanq/wq+(-1.+2.*random.rand(9))*werrorq/wq
-print "QSO Properties"           
-print "redshift   g     r     i     z     w1      w2       w3     w4"   
+print "QSO Properties"
+print "redshift   g     r     i     z     w1      w2       w3     w4"
 print om10q
-
-
-
-
-
-
-
-
-
-

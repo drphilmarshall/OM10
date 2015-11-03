@@ -1,9 +1,16 @@
 # ======================================================================
 
-import pyfits,sys,os,subprocess
+import sys,os,subprocess
 import numpy as np
+import os
+from numpy import *
+import math
+from astropy.table import Table, hstack
+from sklearn.neighbors import NearestNeighbors
+from sklearn import preprocessing
 
 # from astropy.table import Table
+import astropy.io.fits as pyfits
 
 import om10
 
@@ -54,7 +61,7 @@ class DB(object):
     def __init__(self,catalog=None,generate=False):
 
         self.name = 'OM10 database'
-        self.catalog = catalog
+        self.catalog = os.path.expandvars(catalog)
 
         # Make a FITS table from the supplied text catalogs, if required:
         if generate:
@@ -64,231 +71,38 @@ class DB(object):
 
         # If given a catalog, read it in:
         if self.catalog is not None:
-            self.lenses = pyfits.getdata(self.catalog)
-            # self.lenses = Table.read(self.catalog,format='fits')
-            # print self.lenses
+            #self.lenses = pyfits.getdat(self.catalog)
+            self.lenses = Table.read(self.catalog,format='fits')
+            #print self.lenses
 
-        # No down-sampling has been done yet:
-        self.sample = None
+        # No down-sampling has been done yet, but methods operate on sample:
+        self.sample = self.lenses.copy()
 
         # Count lenses:
-        try: self.Nlenses = len(self.lenses.LENSID)
+        try: self.Nlenses = len(self.lenses['LENSID'])
         except: self.Nlenses = 0
 
         return
 
     # ------------------------------------------------------------------
 
-    def make_table(self):
-
-        # Read in lens data from original text catalog:
-
-        lensfile = os.path.expandvars("$OM10_DIR/data/qso_mock_result+lensphot+lensgeom.dat")
-        d = np.loadtxt(lensfile)
-        if vb: print "om10.DB: read in lens data from ",lensfile
-
-        # Put lens parameters in columns:
-
-        nim     = np.array(d[:, 0],dtype=np.int)
-        zd      = np.array(d[:, 1])
-        sigma   = np.array(d[:, 2])
-        zs      = np.array(d[:, 3])
-        ms      = np.array(d[:, 4])
-        m3      = np.array(d[:, 5])
-        dtheta  = np.array(d[:, 6])
-        epsd    = np.array(d[:, 7])
-        phid    = np.array(d[:, 8])
-        gammax  = np.array(d[:, 9])
-        phix    = np.array(d[:,10])
-        xs      = np.array(d[:,11])
-        ys      = np.array(d[:,12])
-        type    = np.array(d[:,13],dtype=np.int)
-        id      = np.array(d[:,14],dtype=np.int)
-        Dd      = np.array(d[:,15])
-        DLd     = np.array(d[:,16])
-        absmd   = np.array(d[:,17])
-        md      = np.array(d[:,18])
-        Kcorrd  = np.array(d[:,19])
-        Ds      = np.array(d[:,20])
-        Dds     = np.array(d[:,21])
-        Sigcrit = np.array(d[:,22])
-        DLs     = np.array(d[:,23])
-
-        size = len(id)
-
-        if vb: print "om10.DB: stored lens parameters for",size,"lenses"
-
-        if vb: print "om10.DB: pulling out image configurations..."
-
-        xs  = np.zeros([size])
-        ys  = np.zeros([size])
-        xi  = np.zeros([size,4])
-        yi  = np.zeros([size,4])
-        ti  = np.zeros([size,4])
-        mui = np.zeros([size,4])
-
-        # Loop through image log file, line by line, filling up image
-        # parameter arrays:
-
-        logfile = os.path.expandvars("$OM10_DIR/data/qso_mock_log.dat")
-
-        with open(logfile, "r") as file:
-
-            count = 0
-            for line in file:
-
-                x = line.split()
-
-                # print "line = ",x," length = ",len(x)
-
-                if (len(x) == 5):
-                    k = np.where(id == int(x[4]))
-                    k = k[0]
-                    xs[k] = float(x[1])
-                    ys[k] = float(x[2])
-                    # print "k = ",k," xs,ys = ",xs[k],ys[k]
-                    i = 0
-                    count += 1
-                else:
-                   xi[k,i]   = float(x[0])
-                   yi[k,i]   = float(x[1])
-                   mui[k,i]  = float(x[2])
-                   ti[k,i]   = float(x[3])
-                   # print "i = ",i," xi,yi,mui,ti = ",xi[k,i],yi[k,i],mui[k,i],ti[k,i]
-                   i += 1
-
-        file.close()
-
-        # Check numbers:
-        if (count != size):
-            print "ERROR: found %d lenses in logfile and %d in result file" % count,size
-
-        if vb: print "om10.DB: read in image parameters for",size,"lenses"
-
-        # Now package into a pyfits table:
-
-        self.lenses = []
-        self.lenses.append(pyfits.Column(name='LENSID  ',format='J       ',array=id))
-        self.lenses.append(pyfits.Column(name='FLAGTYPE',format='I       ',array=type))
-        self.lenses.append(pyfits.Column(name='NIMG    ',format='I       ',array=nim))
-        self.lenses.append(pyfits.Column(name='ZLENS   ',format='D       ',array=zd))
-        self.lenses.append(pyfits.Column(name='VELDISP ',format='D       ',array=sigma))
-        self.lenses.append(pyfits.Column(name='ELLIP   ',format='D       ',array=epsd))
-        self.lenses.append(pyfits.Column(name='PHIE    ',format='D       ',array=phid))
-        self.lenses.append(pyfits.Column(name='GAMMA   ',format='D       ',array=gammax))
-        self.lenses.append(pyfits.Column(name='PHIG    ',format='D       ',array=phix))
-        self.lenses.append(pyfits.Column(name='ZSRC    ',format='D       ',array=zs))
-        self.lenses.append(pyfits.Column(name='XSRC    ',format='D       ',array=xs))
-        self.lenses.append(pyfits.Column(name='YSRC    ',format='D       ',array=ys))
-        self.lenses.append(pyfits.Column(name='MAGI_IN ',format='D       ',array=ms))
-        self.lenses.append(pyfits.Column(name='MAGI    ',format='D       ',array=m3))
-        self.lenses.append(pyfits.Column(name='IMSEP   ',format='D       ',array=dtheta))
-        self.lenses.append(pyfits.Column(name='XIMG    ',format='4D      ',array=xi))
-        self.lenses.append(pyfits.Column(name='YIMG    ',format='4D      ',array=yi))
-        self.lenses.append(pyfits.Column(name='MAG     ',format='4D      ',array=mui))
-        self.lenses.append(pyfits.Column(name='DELAY   ',format='4D      ',array=ti))
-        self.lenses.append(pyfits.Column(name='KAPPA   ',format='4D      ',array=np.zeros([size,4])))
-        self.lenses.append(pyfits.Column(name='FSTAR   ',format='4D      ',array=np.zeros([size,4])))
-        self.lenses.append(pyfits.Column(name='DD      ',format='D       ',array=Dd))
-        self.lenses.append(pyfits.Column(name='DDLUM   ',format='D       ',array=DLd))
-        self.lenses.append(pyfits.Column(name='ABMAG_I ',format='D       ',array=absmd))
-        self.lenses.append(pyfits.Column(name='APMAG_I ',format='D       ',array=md))
-        self.lenses.append(pyfits.Column(name='KCORR   ',format='D       ',array=Kcorrd))
-        self.lenses.append(pyfits.Column(name='DS      ',format='D       ',array=Ds))
-        self.lenses.append(pyfits.Column(name='DDS     ',format='D       ',array=Dds))
-        self.lenses.append(pyfits.Column(name='SIGCRIT ',format='D       ',array=Sigcrit))
-        self.lenses.append(pyfits.Column(name='DSLUM   ',format='D       ',array=DLs))
-        self.lenses.append(pyfits.Column(name='L_I     ',format='D       ',array=np.zeros([size])))
-        self.lenses.append(pyfits.Column(name='REFF    ',format='D       ',array=np.zeros([size])))
-        self.lenses.append(pyfits.Column(name='REFF_T  ',format='D       ',array=np.zeros([size])))
-
-        return
-
-    # ------------------------------------------------------------------
-
     def write_table(self,catalog):
-
         try: os.remove(catalog)
         except OSError: pass
 
-        if self.sample is None:
+        if len(self.sample) == len(self.lenses):
             pyfits.writeto(catalog,self.lenses)
         else:
             pyfits.writeto(catalog,self.sample)
 
         if vb: print "om10.DB: wrote catalog of ",self.Nlenses," OM10 lenses to file at "+catalog
-
-        return
-
-    # ------------------------------------------------------------------
-
-    def export_to_cpt(self,pars,cptfile):
-
-        try: os.remove(cptfile)
-        except OSError: pass
-
-        if self.sample is None:
-            data = self.lenses
-        else:
-            data = self.sample
-
-        # Define labels and ranges for cpt files:
-        labels = {}
-        ranges = {}
-
-        labels['ZLENS']           = '$z_{\\rm d}$,  '
-        ranges['ZLENS']           = '0.0,2.5,    '
-
-        labels['ZSRC']            = '$z_{\\rm s}$,  '
-        ranges['ZSRC']            = '0.0,6.0,    '
-
-        labels['IMSEP']           = '$\\Delta \\theta / "$,  '
-        ranges['IMSEP']           = '0.0,5.0,    '
-
-        labels['APMAG_I']         = '$i_{\\rm d}$ / mag,  '
-        ranges['APMAG_I']         = '15.0,24.5,    '
-
-        labels['MAGI']            = '$i_{\\rm 2/3}$ / mag,  '
-        ranges['MAGI']            = '15.0,24.5,    '
-
-
-        # Write header lines:
-
-        hline1 = '# '
-        hline2 = '# '
-        for par in pars:
-            hline1 += labels[par]
-            hline2 += ranges[par]
-
-        # Prepare data for writing:
-
-        outbundle = np.zeros([self.Nlenses,len(pars)])
-
-        for k,par in enumerate(pars):
-            outbundle[:,k] = data[par]
-
-        # The actual writing:
-
-        output = open(cptfile,'w')
-        output.write("%s\n" % hline1)
-        output.write("%s\n" % hline2)
-        output.close()
-        np.savetxt('junk', outbundle)
-        cat = subprocess.call("cat junk >> " + cptfile, shell=True)
-        rm = subprocess.call("rm junk", shell=True)
-        if cat != 0 or rm != 0:
-          print "Error: write subprocesses failed in some way :-/"
-          sys.exit()
-
-        if vb: print "om10.DB: wrote a ",len(pars),"-column plain text file of ",len(data)," OM10 lenses to file at "+cptfile
-
         return
 
     # ------------------------------------------------------------------
 
     def get_lens(self,ID):
 
-        try: rec = self.lenses[self.lenses.LENSID == ID]
+        try: rec = self.lenses[self.lenses['LENSID'] == ID]
         except: rec = None
 
         return rec
@@ -300,9 +114,9 @@ class DB(object):
         # Select all lenses that meet the rough observing criteria:
 
         try:
-            sample = self.lenses.copy()
-            sample = sample[sample.MAGI < maglim]
-            sample = sample[sample.IMSEP > 0.67*IQ]
+            sample = self.sample.copy()
+            sample = sample[sample['MAGI'] < maglim]
+            sample = sample[sample['IMSEP'] > 0.67*IQ]
         except:
             if vb: print "om10.DB: selection yields no lenses"
             return None
@@ -331,37 +145,33 @@ class DB(object):
 
     # ------------------------------------------------------------------
 
-    def get_sky_positions(self,dmag=0.2,dz=0.2):
+    def get_sky_positions(self,dmag=0.2,dz=0.2,input_cat='$OM10_DIR/data/CFHTLS_LRGs.txt'):
 
-        LRGfile = os.path.expandvars("$OM10_DIR/data/CFHTLS_LRGs.txt")
-        try: d = np.loadtxt(LRGfile)
-        except: raise "ERROR: cannot find LRG catalog for sky positions!"
-
+        LRGfile = os.path.expandvars(input_cat)
+        try:
+            d = np.loadtxt(LRGfile)
+        except IOError:
+            print "Cannot find LRG catalog!"
         if vb: print "om10.DB: read in LRG sky position data from ",LRGfile
 
         # Put LRG parameters in LRG structure:
+        # RA DEC z mag_u mag_g mag_r mag_i mag_z
 
         self.LRGs = {}
         self.LRGs['RA']       = np.array(d[:, 0])
         self.LRGs['DEC']      = np.array(d[:, 1])
         self.LRGs['redshift'] = np.array(d[:, 2])
+        self.LRGs['g-r']      = np.array(d[:, 4]) - np.array(d[:, 5])
+        self.LRGs['r-i']      = np.array(d[:, 5]) - np.array(d[:, 6])
+        self.LRGs['i-z']      = np.array(d[:, 6]) - np.array(d[:, 7])
         self.LRGs['mag_i']    = np.array(d[:, 6])
+        features = np.array([self.LRGs['redshift'], self.LRGs['g-r'], self.LRGs['r-i'], self.LRGs['i-z'], self.LRGs['mag_i']]).transpose()
+        self.LRGs['feature_scaler'] = preprocessing.StandardScaler().fit(features)
+        scaled_features = self.LRGs['feature_scaler'].transform(features)
+        self.LRGs['nbrFinder'] = NearestNeighbors(n_neighbors=1,algorithm='auto',metric='euclidean').fit(scaled_features)
 
-        print "Mean LRG RA,DEC,z,i = ",np.average(self.LRGs['RA']),np.average(self.LRGs['DEC']),np.average(self.LRGs['redshift']),np.average(self.LRGs['mag_i']);
-
-        # Bin LRGs in mag_i and redshift, and record bin numbers for each one:
-
-        imin,imax = np.min(self.LRGs['mag_i']),np.max(self.LRGs['mag_i'])
-        nibins = int((imax - imin)/dmag) + 1
-        ibins = np.linspace(imin, imax, nibins)
-        self.LRGs['ivals'] = np.digitize(self.LRGs['mag_i'],ibins)
-        self.LRGs['ibins'] = ibins
-
-        zmin,zmax = np.min(self.LRGs['redshift']),np.max(self.LRGs['redshift'])
-        nzbins = int((zmax - zmin)/dz) + 1
-        zbins = np.linspace(zmin, zmax, nzbins)
-        self.LRGs['zvals'] = np.digitize(self.LRGs['redshift'],zbins)
-        self.LRGs['zbins'] = zbins
+        print "Mean LRG RA,DEC,z = ",np.average(self.LRGs['RA']),np.average(self.LRGs['DEC']),np.average(self.LRGs['redshift']),np.average(self.LRGs['mag_i']);
+        print "Mean LRG i,(g-r) = ",np.average(self.LRGs['RA']),np.average(self.LRGs['DEC']),np.average(self.LRGs['redshift']),np.average(self.LRGs['mag_i']);
 
         if vb: print "om10.DB: number of LRGs stored = ",len(self.LRGs['redshift'])
 
@@ -369,55 +179,105 @@ class DB(object):
 
     # ------------------------------------------------------------------
 
-    def assign_sky_positions(self):
+    def assign_sky_positions(self,verbose=False):
 
-        reallyverbose = False
+        #try:
+        #    tmp = self.sample.['MAGG_LENS'][0]
+        #except :
+
+        reallyverbose = verbose
 
         # Prepare new columns for LRG properties:
-        size = len(self.lenses.LENSID)
-        dummy = np.zeros(size)
-        # For some reason the following lines don't work - we need to
-        # switch to a better dataframe system, like pandas, so that we can
-        # add table columns in the way we need to...
-        self.lenses['RA'] = dummy
-        self.lenses['DEC'] = dummy
+        self.sample['RA'] = 0.0
+        self.sample['DEC'] = 0.0
 
-        # First digitize the lenses to the same bins as the LRGs:
+        scaler = self.LRGs['feature_scaler']
+        index_list = []
 
-        ii = np.digitize(self.lenses.APMAG_I,self.LRGs['ibins'])
-        iz = np.digitize(self.lenses.ZLENS,self.LRGs['zbins'])
+        for lens in self.sample:
+            lens_features = np.array([lens['ZLENS'], lens['MAGG_LENS']-lens['MAGR_LENS'], \
+            lens['MAGR_LENS']-lens['MAGI_LENS'], lens['MAGI_LENS']-lens['MAGZ_LENS'], lens['APMAG_I']])
 
-        # Loop over lenses, finding all LRGs in its bin:
-
-        for k in range(len(self.lenses)):
-            iindex = list(np.where(self.LRGs['ivals'] == ii[k])[0])
-            zindex = list(np.where(self.LRGs['zvals'] == iz[k])[0])
-            i = list(set(iindex).intersection(set(zindex)))
-
-            if len(i) == 0:
-                if reallyverbose: print "WARNING: Lens ",k," has no matching LRG..."
-                self.lenses.RA[k]       = -99
-                self.lenses.DEC[k]      = -99
-                pass
-
-            else:
-                if reallyverbose: print "Lens ",k," has ",len(i)," neighbour LRGs... "
-
-                # Compute distances to find nearest neighbour:
-                i0 = self.lenses.APMAG_I[k]
-                z0 = self.lenses.ZLENS[k]
-                R = np.sqrt((self.LRGs['mag_i'][i]-i0)**2 + (self.LRGs['redshift'][i])**2)
-                best = np.where(R == np.min(R))
-                ibest = i[best[0][0]]
-                if reallyverbose:
-                    print "  LRG  i,z: ",self.LRGs['mag_i'][ibest],self.LRGs['redshift'][ibest]
-
-                self.lenses.RA[k]       = self.LRGs['RA'][ibest]
-                self.lenses.DEC[k]      = self.LRGs['DEC'][ibest]
+            scaled_lens_features = scaler.transform(lens_features)
+            distance, index = self.LRGs['nbrFinder'].kneighbors(scaled_lens_features)
+            index_list.append(index)
+            lens['RA'] = self.LRGs['RA'][index]
+            lens['DEC'] = self.LRGs['DEC'][index]
 
             if reallyverbose:
-                print "  Lens i,z: ",self.lenses.APMAG_I[k],self.lenses.ZLENS[k]
-                print "  Lens RA,DEC: ",self.lenses.RA[k],self.lenses.DEC[k]
+                print "  Lens i,z: ",self.sample['APMAG_I'][k],self.sample['ZLENS'][k]
+                print "  Lens RA,DEC: ",self.sample['RA'][k],self.sample['DEC'][k]
+
+        return index_list
+
+# ----------------------------------------------------------------------------
+
+    def make_sim_input_catalog(self):
+        n_obj = len(self.sample)
+        n_tot_img = np.sum(self.sample['NIMG'])
+        output_cols=['LENSID','RA','DEC','XIMG','YIMG','G','R','I','Z']
+
+        sim_cat = Table(np.zeros((n_tot_img+n_obj,len(output_cols)), \
+        dtype=('>i4', '>f8', '>f8', '>f8', '>f8', '>f8', '>f8', '>f8', '>f8')),names=output_cols)
+
+        out_idx = 0
+        for lens in self.sample:
+            sim_cat[out_idx] = (lens['LENSID'],lens['RA'],lens['DEC'],0,0,lens['MAGG_LENS'], \
+                                lens['MAGR_LENS'], lens['MAGI_LENS'], lens['MAGZ_LENS'])
+            out_idx += 1
+            mag_adjust = 2.5*np.log10(abs(lens['MAG'][lens['MAG'] != 0]))
+            for img in np.arange(lens['NIMG']):
+                sim_cat[out_idx] = (lens['LENSID'],lens['RA']+lens['XIMG'][img]/(np.cos(np.deg2rad(lens['DEC']))*3600.0),lens['DEC']+lens['YIMG'][img]/3600.0,\
+                                    lens['XIMG'][img],lens['YIMG'][img],lens['MAGG_SRC']-mag_adjust[img], \
+                                    lens['MAGR_SRC']-mag_adjust[img], lens['MAGI_SRC']-mag_adjust[img],\
+                                    lens['MAGZ_SRC']-mag_adjust[img])
+                out_idx += 1
+        return sim_cat
+
+# ----------------------------------------------------------------------------
+
+    def paint(self,Nmax=None,verbose=False,lrg_input_cat='$OM10_DIR/data/LRGo.txt',qso_input_cat='$OM10_DIR/data/QSOo.txt'):
+        ## read data from SDSS
+        f=open(os.path.expandvars(lrg_input_cat),'r')
+        lrg=loadtxt(f)
+        f.close()
+        #print lrg[0,0],lrg.shape
+        g=open(os.path.expandvars(qso_input_cat),'r')
+        qso=loadtxt(g)
+        g.close()
+        #print qso[0,0],qso.shape
+
+        ###MY OWN REDSHIFT ONLY MATCHING HERE:
+
+        lens_props = ['MAGG_LENS','MAGR_LENS','MAGI_LENS','MAGZ_LENS', \
+        'MAGW1_LENS','MAGW2_LENS','MAGW3_LENS','MAGW4_LENS', 'SDSS_FLAG_LENS']
+
+        src_props = ['MAGG_SRC','MAGR_SRC','MAGI_SRC','MAGZ_SRC', \
+        'MAGW1_SRC','MAGW2_SRC','MAGW3_SRC','MAGW4_SRC', 'SDSS_FLAG_SRC']
+
+        tmp_lens = Table(np.zeros((len(self.sample),len(lens_props)),dtype='f8'),names=lens_props)
+        tmp_src = Table(np.zeros((len(self.sample),len(src_props)),dtype='f8'),names=src_props)
+
+        if verbose: print 'setup done'
+
+        lrg_sort = lrg[np.argsort(lrg[:,0]),:]
+        qso_sort = qso[np.argsort(qso[:,0]),:]
+        lens_count = 0
+
+        for lens in self.sample:
+
+            #paint lens
+            ind = np.searchsorted(lrg_sort[:,0],lens['ZLENS'])
+            if ind >= len(lrg_sort): ind = len(lrg_sort) - 1
+            tmp_lens[lens_count] = lrg_sort[ind,6:] - lrg_sort[ind,8] + lens['APMAG_I'] #assign colors, not mags
+            #paint source
+            qso_ind = np.searchsorted(qso_sort[:,0],lens['ZSRC'])
+            if qso_ind >= len(qso_sort): qso_ind = len(qso_sort) - 1
+            tmp_src[lens_count] = qso_sort[qso_ind,1:] - qso_sort[qso_ind,3] + lens['MAGI']
+
+            lens_count += 1
+
+        self.sample = hstack([self.sample,tmp_lens,tmp_src])
 
         return
 
@@ -434,6 +294,7 @@ if __name__ == '__main__':
 # To read in an old FITS catalog:
 
     db = om10.DB(catalog=os.path.expandvars("$OM10_DIR/data/qso_mock.fits"))
+
 # Get one lens:
 
 #     id = 7176527
