@@ -4,9 +4,6 @@
 # functions in this file:
 
 import matplotlib
-# Force matplotlib to not use any Xwindows backend:
-try: matplotlib.use('Agg')
-except: pass
 
 # Fonts, latex:
 matplotlib.rc('font',**{'family':'serif', 'serif':['TimesNewRoman']})
@@ -18,11 +15,16 @@ import om10
 
 # ======================================================================
 
-def plot_lens(lens):
+def plot_lens(lens,saveImg=False):
 
     USAGE = """
     NAME
       plot_lens
+
+    PARAMETERS
+        saveImg : bool
+            Default to displaying image inline.
+            If true, save image with standardized name.
 
     PURPOSE
       Given an OM10 lens, compute some basic quantities,
@@ -42,22 +44,27 @@ def plot_lens(lens):
 
     # --------------------------------------------------------------------
 
+    # Force matplotlib to not use any Xwindows backend:
+    if saveImg:
+        try: matplotlib.use('Agg')
+        except: pass
+
     # Pull out data for ease of use:
-    id = lens.LENSID[0]
-    xi = lens.XIMG[0]
-    yi = lens.YIMG[0]
-    mui = lens.MAG[0]
-    nim = lens.NIMG[0]
-    md = lens.APMAG_I[0]
-    ms = lens.MAGI_IN[0]
-    xs = lens.XSRC[0]
-    ys = lens.YSRC[0]
+    id = lens['LENSID'][0]
+    xi = lens['XIMG'][0]
+    yi = lens['YIMG'][0]
+    nim = lens['NIMG'][0]
+    mui = lens['MAG'][0]
+    md = lens['APMAG_I'][0]
+    ms = lens['MAGI_IN'][0]
+    xs = lens['XSRC'][0]
+    ys = lens['YSRC'][0]
     xd = 0.0
     yd = 0.0
-    zd = lens.ZLENS[0]
-    zs = lens.ZSRC[0]
-    q = 1.0 - lens.ELLIP[0]
-    phi = lens.PHIE[0]
+    zd = lens['ZLENS'][0]
+    zs = lens['ZSRC'][0]
+    q = 1.0 - lens['ELLIP'][0]
+    phi = lens['PHIE'][0]
 
     print "om10.plot_lens: plotting image configuration of lens ID ",id
 
@@ -135,9 +142,10 @@ def plot_lens(lens):
     pylab.grid(color='grey', linestyle='--', linewidth=0.5)
 
     # Plot graph to file:
-    pngfile = "om10_qso_ID="+str(id)+".png"
-    pylab.savefig(pngfile)
-    print "om10.plot_lens: figure saved to file:",pngfile
+    if saveImg:
+        pngfile = "om10_qso_ID="+str(id)+".png"
+        pylab.savefig(pngfile)
+        print "om10.plot_lens: figure saved to file:",pngfile
 
 
 # ======================================================================
