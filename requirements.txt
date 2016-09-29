@@ -1,4 +1,6 @@
-scipy
+numpy
+nose
+scikit-learn
 astropy
-matplotlib
-sklearn
+scipy
+corner
