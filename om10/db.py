@@ -2,15 +2,13 @@
 
 import sys,os,subprocess
 import numpy as np
-import os
+import os, urllib
 from numpy import *
 import math
 from astropy.table import Table, hstack
+import astropy.io.fits as pyfits
 from sklearn.neighbors import NearestNeighbors
 from sklearn import preprocessing
-
-# from astropy.table import Table
-import astropy.io.fits as pyfits
 
 import om10
 
@@ -19,63 +17,36 @@ vb = True
 # ======================================================================
 
 class DB(object):
-
     """
-    NAME
-        DB
+    Reads in an OM10 catalog and stores it as a 'database', in the
+    loosest sense of the word.
 
-    PURPOSE
-        Read in an OM10 catalog and store it as a 'database', in the
-        loosest sense of the word.
+    Parameters
+    ----------
+    catalog : string
+        OM10 FITS lens catalog name.
 
-    COMMENTS
-
-    INITIALISATION
-        catalog            OM10 FITS lens catalog.
-
-    METHODS
-        get_lens(ID)       Extract one lens object
-        select_random(Nlens=None,maglim=99.0,area=100000.0,IQ=0.0)
-                           Extract a random sample of lenses that meet
-                             some simple observational criteria.
-        make_table()       Make a FITS table given raw text files.
-        write_table(file)  Write out a new FITS table to file
-        paint(lens/qso,catalog)
-                           Find a matching real object from the supplied
-                             catalog, and transfer its colors
-        place(catalog)     Find a matching LRG and transfer its sky position.
-
-    BUGS
-      - LRG properties have not been added to table!
-
-    AUTHORS
+    Notes
+    -----
       This file is part of the OM10 project, distributed under the
-      GPL v2, by Phil Marshall (KIPAC).
+      MIT License by Phil Marshall (KIPAC).
       Please cite: Oguri & Marshall (2010), MNRAS, 405, 2579.
-
-    HISTORY
-      2013-04-07  Started Marshall (Oxford)
     """
     # ------------------------------------------------------------------
 
     def __init__(self,catalog=None,generate=False):
 
         self.name = 'OM10 database'
-        self.catalog = os.path.expandvars(catalog)
+        if catalog is None:
+            self.download()
+        else:
+            self.catalog = os.path.expandvars(catalog)
 
-        # Make a FITS table from the supplied text catalogs, if required:
-        if generate:
-            self.make_table()
-            self.catalog = os.path.expandvars("$OM10_DIR/data/qso_mock.fits")
-            self.write_table(self.catalog)
+        # Read in the catalog:
+        self.lenses = Table.read(self.catalog,format='fits')
 
-        # If given a catalog, read it in:
-        if self.catalog is not None:
-            #self.lenses = pyfits.getdat(self.catalog)
-            self.lenses = Table.read(self.catalog,format='fits')
-            #print self.lenses
-
-        # No down-sampling has been done yet, but methods operate on sample:
+        # No down-sampling has been done yet, but all methods operate
+        # on a "sample" - so make a copy:
         self.sample = self.lenses.copy()
 
         # Count lenses:
@@ -86,16 +57,30 @@ class DB(object):
 
     # ------------------------------------------------------------------
 
+    def download(self):
+        """
+        Downloads a copy of the primary OM10 FITS table.
+        """
+        url = 'https://github.com/drphilmarshall/OM10/raw/master/data/qso_mock.fits'
+        self.catalog = url.split('/')[-1]
+        print "Looking for catalog ", self.catalog
+        if not os.path.isfile(self.catalog):
+            urllib.urlretrieve(url, self.catalog)
+            print 'Downloaded catalog:', self.catalog
+        return
+
+    # ------------------------------------------------------------------
+
     def write_table(self,catalog):
         try: os.remove(catalog)
         except OSError: pass
-
         if len(self.sample) == len(self.lenses):
             pyfits.writeto(catalog,self.lenses)
         else:
             pyfits.writeto(catalog,self.sample)
-
-        if vb: print "om10.DB: wrote catalog of ",self.Nlenses," OM10 lenses to file at "+catalog
+        if vb:
+            print "om10.DB: wrote catalog of ", self.Nlenses,
+            " OM10 lenses to file at " + catalog
         return
 
     # ------------------------------------------------------------------
