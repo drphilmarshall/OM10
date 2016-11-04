@@ -41,8 +41,8 @@ class TestDB(unittest.TestCase):
         lens = self.db.get_lens(id)
         self.assertIsNotNone(lens)
         self.assertAlmostEqual(lens['ZLENS'][0],0.556)
-        self.assertAlmostEqual(lens.['ZSRC'][0],1.88)
-        self.assertAlmostEqual(lens.['MAG'][0][0],2.9873)
+        self.assertAlmostEqual(lens['ZSRC'][0],1.88)
+        self.assertAlmostEqual(lens['MAG'][0][0],2.9873)
         return
 
 # ======================================================================
