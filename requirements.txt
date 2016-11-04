@@ -1,5 +1,5 @@
-scipy
 astropy
 matplotlib
 sklearn
 corner
+scipy
