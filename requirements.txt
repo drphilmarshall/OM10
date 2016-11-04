@@ -2,4 +2,4 @@ astropy
 matplotlib
 sklearn
 corner
-scipy
+scipy>=0.18.1
