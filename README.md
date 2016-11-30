@@ -20,8 +20,10 @@ Now when you `import om10` you'll get the development version, linked to to your
 
 Make sure you have all the requirements with
 ```
+conda install scipy>=0.18.1
 pip install -r requirements.txt
 ```
+A high version of `scipy` is needed for `scikit-learn`. We also use Tom Collett's `lenspop` package, currently in beta.
 
 ### Example Use
 
