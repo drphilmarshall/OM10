@@ -32,6 +32,7 @@ develop-eggs
 .installed.cfg
 lib
 lib64
+lenspop
 
 # Installer logs
 pip-log.txt
