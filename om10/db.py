@@ -12,8 +12,6 @@ from sklearn import preprocessing
 
 import om10
 
-vb = True
-
 # ======================================================================
 
 class DB(object):
@@ -28,31 +26,47 @@ class DB(object):
 
     Notes
     -----
-      This file is part of the OM10 project, distributed under the
-      MIT License by Phil Marshall (KIPAC).
-      Please cite: Oguri & Marshall (2010), MNRAS, 405, 2579.
     """
     # ------------------------------------------------------------------
 
-    def __init__(self,catalog=None,generate=False):
+    def __init__(self, catalog=None, generate=False, vb=True):
 
         self.name = 'OM10 database'
+        self.vb = vb
+
         if catalog is None:
-            self.download()
+            # Use the one that comes with the package:
+            self.catalog = \
+                os.path.join(os.path.dirname(os.path.realpath(__file__)), '../data/qso_mock.fits')
         else:
             self.catalog = os.path.expandvars(catalog)
 
+        self.setup()
+
+        return
+
+    # ------------------------------------------------------------------
+
+    def setup(self):
+        """
+        Read in the catalog and set up an initial (super) sample.
+        """
         # Read in the catalog:
-        self.lenses = Table.read(self.catalog,format='fits')
+        self.lenses = Table.read(self.catalog, format='fits')
+        if self.vb:
+            print "OM10: Full db.lenses table contains {:d} systems".format(len(self.lenses))
 
         # No down-sampling has been done yet, but all methods operate
         # on a "sample" - so make a copy:
         self.sample = self.lenses.copy()
+        self.Nlenses = len(self.sample)
+        if self.vb:
+            print "OM10: Initial db.sample contains {:d} systems".format(self.Nlenses)
 
-        # Count lenses:
-        try: self.Nlenses = len(self.lenses['LENSID'])
-        except: self.Nlenses = 0
+        return
 
+    def reset(self):
+        self.setup()
         return
 
     # ------------------------------------------------------------------
@@ -60,13 +74,21 @@ class DB(object):
     def download(self):
         """
         Downloads a copy of the primary OM10 FITS table.
+
+        Notes
+        -----
+        This could be useful, in case the one that came with the
+        package gets deleted, or you just want a local copy. The new
+        catalog will be placed in the current working directory, and the filename (stored in `db.catalog`) updated.
         """
         url = 'https://github.com/drphilmarshall/OM10/raw/master/data/qso_mock.fits'
         self.catalog = url.split('/')[-1]
-        print "Looking for catalog ", self.catalog
+        if self.vb: print "OM10: Looking for local catalog {:s}".format(self.catalog)
         if not os.path.isfile(self.catalog):
             urllib.urlretrieve(url, self.catalog)
-            print 'Downloaded catalog:', self.catalog
+            if self.vb: print 'OM10: Downloaded catalog: {:s}'.format(self.catalog)
+        else:
+            if self.vb: print 'OM10: File already exists, no need to download.'
         return
 
     # ------------------------------------------------------------------
@@ -78,9 +100,7 @@ class DB(object):
             pyfits.writeto(catalog,self.lenses)
         else:
             pyfits.writeto(catalog,self.sample)
-        if vb:
-            print "om10.DB: wrote catalog of ", self.Nlenses,
-            " OM10 lenses to file at " + catalog
+        if self.vb: print "OM10: Wrote catalog of {:d} OM10 lenses to file at {:s}".format(self.Nlenses, catalog)
         return
 
     # ------------------------------------------------------------------
@@ -89,6 +109,10 @@ class DB(object):
 
         try: rec = self.lenses[self.lenses['LENSID'] == ID]
         except: rec = None
+
+        if self.vb:
+            print "OM10: Extracted OM10 lens number {:d}:".format(ID)
+            print rec
 
         return rec
 
@@ -103,7 +127,7 @@ class DB(object):
             sample = sample[sample['MAGI'] < maglim]
             sample = sample[sample['IMSEP'] > 0.67*IQ]
         except:
-            if vb: print "om10.DB: selection yields no lenses"
+            if self.vb: print "OM10: selection yields no lenses"
             return None
 
         # Compute expected number of lenses in survey:
@@ -112,9 +136,9 @@ class DB(object):
             N = int(len(sample) * (area / 20000.0) * 0.2)
         else:
             N = Nlens
-        if vb: print "om10.DB: selection yields ",N," lenses"
+        if self.vb: print "OM10: selection yields {:d} lenses".format(N)
         if N > len(sample):
-            print "om10.db: Warning: too few lenses in catalog, returning ",len(sample)," instead"
+            print "OM10: Warning: too few lenses in catalog, returning {:d} instead".format(len(sample))
             N = len(sample)
 
         # Shuffle sample and return only this, or the required, number of systems:
@@ -130,14 +154,15 @@ class DB(object):
 
     # ------------------------------------------------------------------
 
-    def get_sky_positions(self,dmag=0.2,dz=0.2,input_cat='$OM10_DIR/data/CFHTLS_LRGs.txt'):
+    def get_sky_positions(self, dmag=0.2, dz=0.2,
+                          input_cat='$OM10_DIR/data/CFHTLS_LRGs.txt'):
 
         LRGfile = os.path.expandvars(input_cat)
         try:
             d = np.loadtxt(LRGfile)
         except IOError:
             print "Cannot find LRG catalog!"
-        if vb: print "om10.DB: read in LRG sky position data from ",LRGfile
+        if self.vb: print "OM10: read in LRG sky position data from {:s}".format(LRGfile)
 
         # Put LRG parameters in LRG structure:
         # RA DEC z mag_u mag_g mag_r mag_i mag_z
@@ -158,7 +183,7 @@ class DB(object):
         print "Mean LRG RA,DEC,z = ",np.average(self.LRGs['RA']),np.average(self.LRGs['DEC']),np.average(self.LRGs['redshift']),np.average(self.LRGs['mag_i']);
         print "Mean LRG i,(g-r) = ",np.average(self.LRGs['RA']),np.average(self.LRGs['DEC']),np.average(self.LRGs['redshift']),np.average(self.LRGs['mag_i']);
 
-        if vb: print "om10.DB: number of LRGs stored = ",len(self.LRGs['redshift'])
+        if self.vb: print "om10.DB: number of LRGs stored = ",len(self.LRGs['redshift'])
 
         return
 

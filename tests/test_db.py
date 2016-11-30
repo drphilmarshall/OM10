@@ -1,11 +1,11 @@
 # ======================================================================
 
-import os,unittest
+import os, unittest
 import om10
 
 # ======================================================================
 
-class TestDB(unittest.TestCase):
+class DBTestCase(unittest.TestCase):
     """
     Tests the OM10 db class.
 
@@ -15,28 +15,31 @@ class TestDB(unittest.TestCase):
         nosetests
     from anywhere in the module, provided you have run
         pip install nose
-
-    This file is part of the OM10 project, distributed under the
-    MIT License, by Phil Marshall (KIPAC).
-    Please cite: Oguri & Marshall (2010), MNRAS, 405, 2579.
     """
     # ------------------------------------------------------------------
 
     def setUp(self):
-        self.db = om10.DB(catalog=os.path.expandvars("data/qso_mock.fits"))
+        print "\nStarting a DB instance from scratch:"
+        self.db = om10.DB(catalog=None)
         return
 
     def tearDown(self):
         return
 
     def test_download(self):
-        original = self.catalog
+        print "Testing DB.download():"
+        original = self.db.catalog
         self.db.download()
-        self.assertEqual(db.catalog, original)
-        # Should really test that the files are the same length too.
+        # Check that the filenames are different - the downloaded
+        # catalog should be in the $cwd:
+        self.assertNotEqual(self.db.catalog, original)
+        # Count lenses in catalog:
+        self.db.setup()
+        self.assertEqual(self.db.Nlenses, 15658)
+        return
 
     def test_get_lens(self):
-        # Get one lens:
+        print "Testing DB.get_lens():"
         id = 7176527
         lens = self.db.get_lens(id)
         self.assertIsNotNone(lens)
