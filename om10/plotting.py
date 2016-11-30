@@ -4,12 +4,13 @@
 # functions in this file:
 
 import matplotlib
+matplotlib.use('TkAgg')
 
 # Fonts, latex:
 matplotlib.rc('font',**{'family':'serif', 'serif':['TimesNewRoman']})
 matplotlib.rc('text', usetex=True)
 
-import pylab,sys,numpy as np
+import pylab, sys, numpy as np
 
 import om10
 
@@ -47,6 +48,9 @@ def plot_lens(lens,saveImg=False):
     # Force matplotlib to not use any Xwindows backend:
     if saveImg:
         try: matplotlib.use('Agg')
+        except: pass
+    else:
+        try: matplotlib.use('TkAgg')
         except: pass
 
     # Pull out data for ease of use:
