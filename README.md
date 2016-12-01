@@ -40,8 +40,11 @@ om10.plot_lens(lens)
 ```
 Select a mock LSST sample:
 ```
-lenses = db.select_random(maglim=23.3,area=20000.0,IQ=0.7)
+db.select_random(maglim=23.3,area=20000.0,IQ=0.7)
+print db.sample
 ```
+
+See also the [tutorial notebook](https://github.com/drphilmarshall/OM10/blob/master/notebooks/tutorial.ipynb).
 
 ### License, Credits
 
