@@ -118,20 +118,42 @@ class DB(object):
 
     # ------------------------------------------------------------------
 
-    def select_random(self,Nlens=None,maglim=99.0,area=100000.0,IQ=0.0):
+    def select_random(self, Nlens=None, maglim=99.0, area=100000.0,
+                      IQ=0.0):
+        """
+        Selects an appropriately-sized random sample of lenses that
+        meet the rough observing criteria given.
 
-        # Select all lenses that meet the rough observing criteria:
+        Parameters
+        ----------
+        Nlens : int, optional
+            Specific desired number of lenses
+        maglim : float
+            10-sigma point source detection limit
+        area : float
+            Total survey area, in square degrees
+        IQ : float
+            Median survey image quality, in arcsec
+
+        Notes
+        -----
+        If `Nlens` is not specified, it is calculated based on the OM10
+        model. The full OM10 catalog contains 100,000 sq degrees worth
+        of lenses. The detection criteria assumed are given in the OM10
+        paper: we assume that the 3rd brightest quasar image must be
+        brighter than the given `maglim`, and the image separation must
+        be greater than 0.67 times the given `IQ`.
+        """
 
         try:
             sample = self.sample.copy()
             sample = sample[sample['MAGI'] < maglim]
             sample = sample[sample['IMSEP'] > 0.67*IQ]
         except:
-            if self.vb: print "OM10: selection yields no lenses"
+            if self.vb: print "OM10: Selection yields no lenses"
             return None
 
         # Compute expected number of lenses in survey:
-
         if Nlens is None:
             N = int(len(sample) * (area / 20000.0) * 0.2)
         else:
@@ -142,7 +164,6 @@ class DB(object):
             N = len(sample)
 
         # Shuffle sample and return only this, or the required, number of systems:
-
         index = range(len(sample))
         np.random.shuffle(index)
         index = index[0:N]
