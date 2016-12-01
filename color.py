@@ -1,0 +1,49 @@
+from lenspop import population_functions, distances
+from stellarpop import tools
+from astropy.table import Table
+import os
+
+#COMMENT!!!!!!!! MORE DECOMPOSITION!!!
+
+# seed
+redshift = 0.4
+veldisp = 220.0
+
+# This function calculates magnitude for r, g, i, z filters
+def CalculateMagnitude(dataPath, target):
+	#dataFile = os.path.expandvars(dataPath)
+	#data = Table.read(dataFile, format='fits')
+	# call constructor of the distance class
+	d = distances.Distance()
+	#redshift = data['ZLENS']
+	#veldisp = data['VELDISP']
+	if target == 'source':
+		# if target is lens, use appropriate SED
+		sed = tools.getSED('agn')
+	elif target == 'lens':
+		# if target is galaxy, use appropriate SED
+		sed = tools.getSED('agn')
+	RF_Rmag_app, offset = CalculateRestFrameRMag(sed, veldisp, redshift, d)
+	Gfilter = tools.filterfromfile('g_SDSS')
+	Ifilter = tools.filterfromfile('i_SDSS')
+	Zfilter = tools.filterfromfile('z_SDSS')
+	# maybe explain it?	
+	RF_Gmag_app = tools.ABFilterMagnitude(Gfilter, sed, redshift) + offset + d.distance_modulus(redshift)
+	RF_Imag_app = tools.ABFilterMagnitude(Ifilter, sed, redshift) + offset + d.distance_modulus(redshift)
+	RF_Zmag_app = tools.ABFilterMagnitude(Zfilter, sed, redshift) + offset + d.distance_modulus(redshift)
+	return RF_Rmag_app, RF_Gmag_app, RF_Imag_app, RF_Zmag_app
+
+# Decomposition to increase readability but the function is not readable at all I NEED TO COMMENT
+def CalculateRestFrameRMag(sed, veldisp, redshift, d):
+	# call constructor. Name should be changed
+	p_f_LP = population_functions.LensPopulation_()
+	# Reference Frame Absolute R magnitude
+	RF_RMag_abs, a = p_f_LP.EarlyTypeRelations(veldisp)
+	Rfilter = tools.filterfromfile('r_SDSS')
+	RMag_abs = tools.ABFilterMagnitude(Rfilter, sed, redshift)
+	Rmag_app = RMag_abs + d.distance_modulus(redshift)
+	offset1 = RMag_abs - Rmag_app
+	offset2 = RF_RMag_abs - RMag_abs
+	RF_Rmag_app = RF_RMag_abs - offset1
+	return RF_Rmag_app, offset2
+
