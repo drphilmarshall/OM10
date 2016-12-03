@@ -6,8 +6,13 @@ import os
 #COMMENT!!!!!!!! MORE DECOMPOSITION!!!
 
 # seed
-redshift = 0.4
-veldisp = 220.0
+lens_redshift = 0.4
+lens_veldisp = 220.0
+source_redshift = 1.5
+source_veldisp = 100.0
+
+#veldisp = 200.0
+#redshift = 1.5
 
 # This function calculates magnitude for r, g, i, z filters
 def CalculateMagnitude(dataPath, target):
@@ -19,10 +24,14 @@ def CalculateMagnitude(dataPath, target):
 	#veldisp = data['VELDISP']
 	if target == 'source':
 		# if target is lens, use appropriate SED
-		sed = tools.getSED('agn')
+		sed = tools.getSED('QSO1_template_norm')
+		veldisp = source_veldisp
+                redshift = source_redshift
 	elif target == 'lens':
 		# if target is galaxy, use appropriate SED
-		sed = tools.getSED('agn')
+		sed = tools.getSED('M82_template_norm')
+                veldisp = lens_veldisp
+                redshift = lens_redshift
 	RF_Rmag_app, offset = CalculateRestFrameRMag(sed, veldisp, redshift, d)
 	Gfilter = tools.filterfromfile('g_SDSS')
 	Ifilter = tools.filterfromfile('i_SDSS')
