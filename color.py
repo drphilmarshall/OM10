@@ -3,8 +3,6 @@ from stellarpop import tools
 from astropy.table import Table
 import os
 
-#COMMENT!!!!!!!! MORE DECOMPOSITION!!!
-
 # seed
 lens_redshift = 0.4
 lens_veldisp = 220.0
@@ -45,14 +43,14 @@ def CalculateMagnitude(dataPath, target):
 # Decomposition to increase readability but the function is not readable at all I NEED TO COMMENT
 def CalculateRestFrameRMag(sed, veldisp, redshift, d):
 	# call constructor. Name should be changed
-	p_f_LP = population_functions.LensPopulation_()
+	lenspop_const = population_functions.LensPopulation_()
 	# Reference Frame Absolute R magnitude
-	RF_RMag_abs, a = p_f_LP.EarlyTypeRelations(veldisp)
+	RF_RMag_abs, _ = lenspop_const.EarlyTypeRelations(veldisp)
 	Rfilter = tools.filterfromfile('r_SDSS')
 	RMag_abs = tools.ABFilterMagnitude(Rfilter, sed, redshift)
 	Rmag_app = RMag_abs + d.distance_modulus(redshift)
-	offset1 = RMag_abs - Rmag_app
-	offset2 = RF_RMag_abs - RMag_abs
-	RF_Rmag_app = RF_RMag_abs - offset1
-	return RF_Rmag_app, offset2
+	offset_abs_app = RMag_abs - Rmag_app
+	offset_RF_abs = RF_RMag_abs - RMag_abs
+	RF_Rmag_app = RF_RMag_abs - offset_abs_app
+	return RF_Rmag_app, offset_RF_abs
 
