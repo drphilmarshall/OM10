@@ -10,6 +10,9 @@ import astropy.io.fits as pyfits
 from sklearn.neighbors import NearestNeighbors
 from sklearn import preprocessing
 
+from lenspop import population_functions, distances
+from stellarpop import tools
+
 import om10
 
 vb = True
@@ -218,53 +221,115 @@ class DB(object):
                                     lens['MAGZ_SRC']-mag_adjust[img])
                 out_idx += 1
         return sim_cat
-
+    
 # ----------------------------------------------------------------------------
 
-    def paint(self,Nmax=None,verbose=False,lrg_input_cat='$OM10_DIR/data/LRGo.txt',qso_input_cat='$OM10_DIR/data/QSOo.txt'):
+    # The paint method became really long, so needed to decompose this part out
+    def calculateRestFrameRMag(self, sed, veldisp, redshift, d):
+	# call constructor. Name should be changed
+	lenspop_const = population_functions.LensPopulation_()
+	# Reference Frame Absolute R magnitude
+	RF_RMag_abs, _ = lenspop_const.EarlyTypeRelations(veldisp)
+	Rfilter = tools.filterfromfile('r_SDSS')
+	RMag_abs = tools.ABFilterMagnitude(Rfilter, sed, redshift)
+	Rmag_app = RMag_abs + d.distance_modulus(redshift)
+	offset_abs_app = RMag_abs - Rmag_app
+	offset_RF_abs = RF_RMag_abs - RMag_abs
+	RF_Rmag_app = RF_RMag_abs - offset_abs_app
+	return RF_Rmag_app, offset_RF_ab
+
+# ----------------------------------------------------------------------------
+    
+    def paint(self,Nmax=None,verbose=False,lrg_input_cat='$OM10_DIR/data/LRGo.txt',qso_input_cat='$OM10_DIR/data/QSOo.txt', synthetic=False, target='lens'):
+        if synthetic==False:
         ## read data from SDSS
-        f=open(os.path.expandvars(lrg_input_cat),'r')
-        lrg=loadtxt(f)
-        f.close()
+            f=open(os.path.expandvars(lrg_input_cat),'r')
+            lrg=loadtxt(f)
+            f.close()
         #print lrg[0,0],lrg.shape
-        g=open(os.path.expandvars(qso_input_cat),'r')
-        qso=loadtxt(g)
-        g.close()
+            g=open(os.path.expandvars(qso_input_cat),'r')
+            qso=loadtxt(g)
+            g.close()
         #print qso[0,0],qso.shape
 
         ###MY OWN REDSHIFT ONLY MATCHING HERE:
 
-        lens_props = ['MAGG_LENS','MAGR_LENS','MAGI_LENS','MAGZ_LENS', \
-        'MAGW1_LENS','MAGW2_LENS','MAGW3_LENS','MAGW4_LENS', 'SDSS_FLAG_LENS']
+            lens_props = ['MAGG_LENS','MAGR_LENS','MAGI_LENS','MAGZ_LENS', \
+            'MAGW1_LENS','MAGW2_LENS','MAGW3_LENS','MAGW4_LENS', 'SDSS_FLAG_LENS']
+    
+            src_props = ['MAGG_SRC','MAGR_SRC','MAGI_SRC','MAGZ_SRC', \
+            'MAGW1_SRC','MAGW2_SRC','MAGW3_SRC','MAGW4_SRC', 'SDSS_FLAG_SRC']
+    
+            tmp_lens = Table(np.zeros((len(self.sample),len(lens_props)),dtype='f8'),names=lens_props)
+            tmp_src = Table(np.zeros((len(self.sample),len(src_props)),dtype='f8'),names=src_props)
+    
+            if verbose: print 'setup done'
+    
+            lrg_sort = lrg[np.argsort(lrg[:,0]),:]
+            qso_sort = qso[np.argsort(qso[:,0]),:]
+            lens_count = 0
+    
+            for lens in self.sample:
+    
+                #paint lens
+                ind = np.searchsorted(lrg_sort[:,0],lens['ZLENS'])
+                if ind >= len(lrg_sort): ind = len(lrg_sort) - 1
+                tmp_lens[lens_count] = lrg_sort[ind,6:] - lrg_sort[ind,8] + lens['APMAG_I'] #assign colors, not mags
+                #paint source
+                qso_ind = np.searchsorted(qso_sort[:,0],lens['ZSRC'])
+                if qso_ind >= len(qso_sort): qso_ind = len(qso_sort) - 1
+                tmp_src[lens_count] = qso_sort[qso_ind,1:] - qso_sort[qso_ind,3] + lens['MAGI']
+    
+                lens_count += 1
+    
+            self.sample = hstack([self.sample,tmp_lens,tmp_src])
 
-        src_props = ['MAGG_SRC','MAGR_SRC','MAGI_SRC','MAGZ_SRC', \
-        'MAGW1_SRC','MAGW2_SRC','MAGW3_SRC','MAGW4_SRC', 'SDSS_FLAG_SRC']
 
-        tmp_lens = Table(np.zeros((len(self.sample),len(lens_props)),dtype='f8'),names=lens_props)
-        tmp_src = Table(np.zeros((len(self.sample),len(src_props)),dtype='f8'),names=src_props)
-
-        if verbose: print 'setup done'
-
-        lrg_sort = lrg[np.argsort(lrg[:,0]),:]
-        qso_sort = qso[np.argsort(qso[:,0]),:]
-        lens_count = 0
-
-        for lens in self.sample:
-
-            #paint lens
-            ind = np.searchsorted(lrg_sort[:,0],lens['ZLENS'])
-            if ind >= len(lrg_sort): ind = len(lrg_sort) - 1
-            tmp_lens[lens_count] = lrg_sort[ind,6:] - lrg_sort[ind,8] + lens['APMAG_I'] #assign colors, not mags
-            #paint source
-            qso_ind = np.searchsorted(qso_sort[:,0],lens['ZSRC'])
-            if qso_ind >= len(qso_sort): qso_ind = len(qso_sort) - 1
-            tmp_src[lens_count] = qso_sort[qso_ind,1:] - qso_sort[qso_ind,3] + lens['MAGI']
-
-            lens_count += 1
-
-        self.sample = hstack([self.sample,tmp_lens,tmp_src])
-
+        if synthetic==True:
+            print 'here'
+            # call a distance class constructor
+            d = distances.Distance()
+            # number of data in the table of calculated magnitude
+            totalEntrees = self.Nlenses*4.0
+            t = Table(np.arange(totalEntrees).reshape(self.Nlenses, 4), names=('r_SDSS', 'g_SDSS', 'i_SDSS', 'z_SDSS'))
+ 	    lens_count = 0
+ 	    print 'here'
+ 	    Gfilter = tools.filterfromfile('g_SDSS')
+ 	    Ifilter = tools.filterfromfile('i_SDSS')
+ 	    Zfilter = tools.filterfromfile('z_SDSS')
+	    for lens in self.sample:
+                # assign constants according to the type of the object
+                if target == 'source':
+                    # if target is lens, use appropriate SED
+                    sed = tools.getSED('QSO1_template_norm')
+                    veldisp = source_veldisp
+                    redshift = source_redshift
+                elif target == 'lens':
+                    # if target is galaxy, use appropriate SED
+                    sed = tools.getSED('M82_template_norm')
+                    veldisp = lens['VELDISP']
+                    redshift = lens['ZLENS']
+	    	RF_Rmag_app, offset = self.calculateRestFrameRMag(sed, veldisp, redshift, d)
+                # getting filters and calculate magnitudes for each filter
+                Gfilter = tools.filterfromfile('g_SDSS')
+                Ifilter = tools.filterfromfile('i_SDSS')
+                Zfilter = tools.filterfromfile('z_SDSS')
+                RF_Gmag_app = tools.ABFilterMagnitude(Gfilter, sed, redshift) + offset + d.distance_modulus(redshift)
+                RF_Imag_app = tools.ABFilterMagnitude(Ifilter, sed, redshift) + offset + d.distance_modulus(redshift)
+                RF_Zmag_app = tools.ABFilterMagnitude(Zfilter, sed, redshift) + offset + d.distance_modulus(redshift)
+                # update the table with the magnitude
+                t['r_SDSS'][lens_count] = RF_Rmag_app
+                t['g_SDSS'][lens_count] = RF_Gmag_app
+                t['i_SDSS'][lens_count] = RF_Imag_app
+                t['z_SDSS'][lens_count] = RF_Zmag_app
+                lens_count = lens_count+1
+                print lens_count
+    	    # update the table by adding the table of calculated magnitude
+    	self.lenses.add_columns(t.columns.values())
+    
         return
+
+
 
 # ======================================================================
 
