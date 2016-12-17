@@ -13,7 +13,8 @@ source_veldisp = 100.0
 #redshift = 1.5
 
 # This function calculates magnitude for r, g, i, z filters
-def CalculateMagnitude(dataPath, target):
+def CalculateMagnitude(dataPath, target, redshift=0):
+        print '1'
 	#dataFile = os.path.expandvars(dataPath)
 	#data = Table.read(dataFile, format='fits')
 	# call constructor of the distance class
@@ -24,12 +25,14 @@ def CalculateMagnitude(dataPath, target):
 		# if target is lens, use appropriate SED
 		sed = tools.getSED('QSO1_template_norm')
 		veldisp = source_veldisp
-                redshift = source_redshift
+		if redshift==0:
+                        redshift = source_redshift
 	elif target == 'lens':
 		# if target is galaxy, use appropriate SED
 		sed = tools.getSED('M82_template_norm')
                 veldisp = lens_veldisp
-                redshift = lens_redshift
+                if redshift==0:
+                        redshift = source_redshift
 	RF_Rmag_app, offset = CalculateRestFrameRMag(sed, veldisp, redshift, d)
 	Gfilter = tools.filterfromfile('g_SDSS')
 	Ifilter = tools.filterfromfile('i_SDSS')
