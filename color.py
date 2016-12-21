@@ -7,7 +7,7 @@ import os
 lens_redshift = 0.4
 lens_veldisp = 220.0
 source_redshift = 1.5
-source_veldisp = 100.0
+source_veldisp = 150.0
 
 #veldisp = 200.0
 #redshift = 1.5
