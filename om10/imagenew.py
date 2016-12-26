@@ -31,7 +31,7 @@ def GG(x, dx):
 def Gint(x, y, dx, dy):
     return (9./16)*G(x,dx)*G(y,dy)+(3./32)*(G(x+1.,dx)*G(y,dy)+G(x-1.,dx)*G(y,dy)+\
            G(x,dx)*G(y+1.,dy)+G(x,dx)*G(y-1.,dy))+(1/64.)*(G(x-1.,dx)*G(y-1.,dy)+\
-           G(x-1.,dx)G(y+1.,dy)+G(x+1.,dx)*G(y-1.,dt)+G(x+1.,dx)*G(y+1.,dy))
+           G(x-1.,dx)*G(y+1.,dy)+G(x+1.,dx)*G(y-1.,dt)+G(x+1.,dx)*G(y+1.,dy))
 #Gint is useful to interpolate the Gaussian psf on 3*3 grid, i.e. sharing PSF fluxes among neighbouring pixels.
 #SDSS
 pixscale = 0.4
@@ -63,11 +63,3 @@ expo = (log(10.)*erd/(2.5*(2*pi)**0.5))/dr**2.
 dg = (log(10.)*egd/(2.5*(2*pi)**0.5))**0.5/expo**0.5
 di = (log(10.)*eid/(2.5*(2*pi)**0.5))**0.5/expo**0.5
 dz = (log(10.)*ezd/(2.5*(2*pi)**0.5))**0.5/expo**0.5
-
-
-
-
-
-
-
-

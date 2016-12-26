@@ -1,9 +1,16 @@
 *.py[cod]
 
-#temp files
+# Temporary files and products
 *~
 *ipynb_checkpoints*
 .DS_Store
+notebooks/*.txt
+data/*.txt
+data/*.csv
+*.cat
+*.cpt
+examples
+*.png
 
 # Data files
 *.fits
@@ -25,6 +32,7 @@ develop-eggs
 .installed.cfg
 lib
 lib64
+lenspop
 
 # Installer logs
 pip-log.txt
