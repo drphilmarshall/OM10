@@ -14,7 +14,6 @@ source_veldisp = 150.0
 
 # This function calculates magnitude for r, g, i, z filters
 def CalculateMagnitude(dataPath, target, redshift=0):
-        print '1'
 	#dataFile = os.path.expandvars(dataPath)
 	#data = Table.read(dataFile, format='fits')
 	# call constructor of the distance class
