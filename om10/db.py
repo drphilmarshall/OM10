@@ -30,6 +30,9 @@ class DB(object):
 
     Notes
     -----
+      This file is part of the OM10 project, distributed under the
+      MIT License by Phil Marshall (KIPAC).
+      Please cite: Oguri & Marshall (2010), MNRAS, 405, 2579.
     """
     # ------------------------------------------------------------------
 
