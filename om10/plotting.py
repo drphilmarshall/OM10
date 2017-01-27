@@ -218,3 +218,8 @@ axis_labels['ZSRC'] = '$z_s$'
 axis_labels['MAGI'] = '$i_3$'
 axis_labels['MAGI_IN'] = '$i_s$'
 axis_labels['IMSEP'] = '$\Delta \\theta$ / arcsec'
+# ADDED THE LABEL TOO
+axis_labels['GR'] = '$g-r$'
+axis_labels['RI'] = '$r-i$'
+axis_labels['IZ'] = '$i-z$'
+axis_labels['MAGI_Q'] = '$i$'
