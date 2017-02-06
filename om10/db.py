@@ -1,4 +1,4 @@
-##  ======================================================================
+#  ======================================================================
 from __future__ import print_function
 
 import sys,os,subprocess
@@ -392,16 +392,17 @@ class DB(object):
         if synthetic==True:
             start = time.clock()
             self.Nlenses=len(self.sample)
-            bands = ('r_SDSS', 'g_SDSS', 'i_SDSS', 'z_SDSS', 'GR', 'RI', 'IZ')
+            bands = ('r_SDSS', 'g_SDSS', 'i_SDSS', 'z_SDSS')
             if verbose: print('OM10: computing synthetic magnitudes in the following bands: ', bands)
             # call a distance class constructor
             d = distances.Distance()
             # number of data in the table of calculated magnitude
-            totalEntrees = self.Nlenses*7.0
-            t = Table(np.arange(totalEntrees).reshape(self.Nlenses, 7),
+            totalEntrees = self.Nlenses*4.0
+            t = Table(np.arange(totalEntrees).reshape(self.Nlenses, 4),
                       names=bands)
      	    lens_count = 0
             total = len(self.sample)
+            Rfilter = tools.filterfromfile('r_SDSS')
      	    Gfilter = tools.filterfromfile('g_SDSS')
      	    Ifilter = tools.filterfromfile('i_SDSS')
      	    Zfilter = tools.filterfromfile('z_SDSS')
@@ -414,26 +415,26 @@ class DB(object):
             for lens in self.sample:
                 # assign constants according to the type of the object
                 if target == 'source':
-                    veldisp = np.atleast_1d(lens['VELDISP'])
                     # redshift = source_redshift
                     redshift = lens['ZSRC']
-                    RF_Rmag_app, offset = lens['MAGR_IN'], 0.0
+                    RF_Imag_app = lens['MAGI_IN']
+                    offset = RF_Imag_app - tools.ABFilterMagnitude(Ifilter, sed, redshift)
+                    RF_Rmag_app = tools.ABFilterMagnitude(Rfilter, sed, redshift) + offset
+                    RF_Gmag_app = tools.ABFilterMagnitude(Gfilter, sed, redshift) + offset
+                    RF_Zmag_app = tools.ABFilterMagnitude(Zfilter, sed, redshift) + offset
                 elif target == 'lens':
                     veldisp = np.atleast_1d(lens['VELDISP'])
                     redshift = lens['ZLENS']
                     RF_Rmag_app, offset = self.calculate_rest_frame_r_magnitude(sed, veldisp, redshift, d)
-                # Get filters and calculate magnitudes for each filter:
-                RF_Gmag_app = tools.ABFilterMagnitude(Gfilter, sed, redshift) + offset + d.distance_modulus(redshift)
-                RF_Imag_app = tools.ABFilterMagnitude(Ifilter, sed, redshift) + offset + d.distance_modulus(redshift)
-                RF_Zmag_app = tools.ABFilterMagnitude(Zfilter, sed, redshift) + offset + d.distance_modulus(redshift)
+                    # Get filters and calculate magnitudes for each filter:
+                    RF_Gmag_app = tools.ABFilterMagnitude(Gfilter, sed, redshift) + offset + d.distance_modulus(redshift)
+                    RF_Imag_app = tools.ABFilterMagnitude(Ifilter, sed, redshift) + offset + d.distance_modulus(redshift)
+                    RF_Zmag_app = tools.ABFilterMagnitude(Zfilter, sed, redshift) + offset + d.distance_modulus(redshift)
                 # Update the table with the magnitudes
                 t['r_SDSS'][lens_count] = RF_Rmag_app
                 t['g_SDSS'][lens_count] = RF_Gmag_app
                 t['i_SDSS'][lens_count] = RF_Imag_app
                 t['z_SDSS'][lens_count] = RF_Zmag_app
-                t['GR'][lens_count] = RF_Gmag_app - RF_Rmag_app
-                t['RI'][lens_count] = RF_Rmag_app - RF_Imag_app
-                t['IZ'][lens_count] = RF_Imag_app - RF_Zmag_app
                 lens_count = lens_count + 1
                 dot = np.mod(lens_count, total/np.min([79,total])) == 0
                 if verbose and dot:
