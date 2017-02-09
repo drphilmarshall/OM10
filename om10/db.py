@@ -15,11 +15,14 @@ from lenspop import population_functions, distances
 from stellarpop import tools
 import matplotlib.pyplot as plt
 import scipy
+import astropy.cosmology as cosmo
 import time
 
 import om10
 
 # ======================================================================
+
+Rfilter = tools.filterfromfile('r_SDSS')
 
 class DB(object):
     """
@@ -279,7 +282,7 @@ class DB(object):
 # ----------------------------------------------------------------------------
 
 # The paint method became really long, so needed to decompose this part out
-    def calculate_rest_frame_r_magnitude(self, sed, veldisp, redshift, d):
+    def calculate_rest_frame_r_magnitude(self, sed, veldisp, redshift, cosmo):
         """
         Computes rest-frame r-band magnitude of a lens galaxy
 
@@ -307,17 +310,16 @@ class DB(object):
         We don't need this function when painting quasars, because the OM10
         catalog contains a reliable i-band apparent magnitude for each source.
         """
-        # Call constructor. Name should be changed
-        lenspop_const = population_functions.LensPopulation_()
+        lenspop_constructor = population_functions.LensPopulation_()
         # Reference Frame Absolute R magnitude
-        RF_RMag_abs, _ = lenspop_const.EarlyTypeRelations(veldisp)
-        Rfilter = tools.filterfromfile('r_SDSS')
+        RF_RMag_abs, _ = lenspop_constructor.EarlyTypeRelations(veldisp)
         RMag_abs = tools.ABFilterMagnitude(Rfilter, sed, redshift)
-        Rmag_app = RMag_abs + d.distance_modulus(redshift)
+        distModulus = cosmo.distmod(redshift).value
+        Rmag_app = RMag_abs + distModulus
         offset_abs_app = RMag_abs - Rmag_app
         offset_RF_abs = RF_RMag_abs - RMag_abs
         RF_Rmag_app = RF_RMag_abs - offset_abs_app
-        return RF_Rmag_app, offset_RF_abs
+        return RF_Rmag_app, offset_RF_abs, distModulus
 
 # ----------------------------------------------------------------------------
 
@@ -392,7 +394,7 @@ class DB(object):
 
 
         if synthetic==True:
-            start = time.clock()
+            time.time()
             self.Nlenses=len(self.sample)
             bands = ('r_SDSS', 'g_SDSS', 'i_SDSS', 'z_SDSS', 'u_SDSS')
             if verbose: print('OM10: computing synthetic magnitudes in the following bands: ', bands)
@@ -404,19 +406,21 @@ class DB(object):
                       names=bands)
      	    lens_count = 0
             total = len(self.sample)
-            Ufilter = tools.filterfromfile('u_MEGA')
+            Ufilter = tools.filterfromfile('u_SDSS')
      	    Gfilter = tools.filterfromfile('g_SDSS')
-            Rfilter = tools.filterfromfile('r_SDSS')
      	    Ifilter = tools.filterfromfile('i_SDSS')
      	    Zfilter = tools.filterfromfile('z_SDSS')
-     	    Yfilter = tools.filterfromfile('Y_UKIRT')
             if target == 'source':
                 # if target is lens, use appropriate SED
                 sed = tools.getSED('agn')
      	    elif target == 'lens':
+                from astropy.cosmology import FlatLambdaCDM
+                cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
                 # if target is galaxy, use appropriate SED
                 sed = tools.getSED('BC_Z=1.0_age=9.000gyr')
+                lenspop_constructor = population_functions.LensPopulation_()
             for lens in self.sample:
+
                 # assign constants according to the type of the object
                 if target == 'source':
                     # redshift = source_redshift
@@ -427,16 +431,23 @@ class DB(object):
                     RF_Gmag_app = tools.ABFilterMagnitude(Gfilter, sed, redshift) + offset
                     RF_Zmag_app = tools.ABFilterMagnitude(Zfilter, sed, redshift) + offset
                     RF_Umag_app = tools.ABFilterMagnitude(Ufilter, sed, redshift) + offset
-                    RF_Ymag_app = tools.ABFilterMagnitude(Yfilter, sed, redshift) + offset
+
                 elif target == 'lens':
                     veldisp = np.atleast_1d(lens['VELDISP'])
                     redshift = lens['ZLENS']
-                    RF_Rmag_app, offset = self.calculate_rest_frame_r_magnitude(sed, veldisp, redshift, d)
+                    # Reference Frame Absolute R magnitude
+                    RF_RMag_abs, _ = lenspop_constructor.EarlyTypeRelations(veldisp)
+                    RMag_abs = tools.ABFilterMagnitude(Rfilter, sed, redshift)
+                    distMod = cosmo.distmod(redshift).value
+                    Rmag_app = RMag_abs + distMod
+                    offset_abs_app = RMag_abs - Rmag_app
+                    offset_RF_abs = RF_RMag_abs - RMag_abs
+                    RF_Rmag_app = RF_RMag_abs - offset_abs_app
                     # Get filters and calculate magnitudes for each filter:
-                    RF_Umag_app = tools.ABFilterMagnitude(Ufilter, sed, redshift) + offset + d.distance_modulus(redshift)
-                    RF_Gmag_app = tools.ABFilterMagnitude(Gfilter, sed, redshift) + offset + d.distance_modulus(redshift)
-                    RF_Imag_app = tools.ABFilterMagnitude(Ifilter, sed, redshift) + offset + d.distance_modulus(redshift)
-                    RF_Zmag_app = tools.ABFilterMagnitude(Zfilter, sed, redshift) + offset + d.distance_modulus(redshift)
+                    RF_Umag_app = tools.ABFilterMagnitude(Ufilter, sed, redshift) + offset_RF_abs + distMod
+                    RF_Gmag_app = tools.ABFilterMagnitude(Gfilter, sed, redshift) + offset_RF_abs + distMod
+                    RF_Imag_app = tools.ABFilterMagnitude(Ifilter, sed, redshift) + offset_RF_abs + distMod
+                    RF_Zmag_app = tools.ABFilterMagnitude(Zfilter, sed, redshift) + offset_RF_abs + distMod
                 # Update the table with the magnitudes
                 t['u_SDSS'][lens_count] = RF_Umag_app                                                                                                                
                 t['r_SDSS'][lens_count] = RF_Rmag_app
@@ -668,3 +679,4 @@ if __name__ == '__main__':
 # should be able to go much deeper.
 
 # ======================================================================
+
