@@ -106,6 +106,8 @@ class DB(object):
     def write_table(self,catalog):
         try: os.remove(catalog)
         except OSError: pass
+
+        self.sample = np.array(self.sample)
         if len(self.sample) == len(self.lenses):
             pyfits.writeto(catalog,self.lenses)
         else:
@@ -392,20 +394,22 @@ class DB(object):
         if synthetic==True:
             start = time.clock()
             self.Nlenses=len(self.sample)
-            bands = ('r_SDSS', 'g_SDSS', 'i_SDSS', 'z_SDSS')
+            bands = ('r_SDSS', 'g_SDSS', 'i_SDSS', 'z_SDSS', 'u_SDSS')
             if verbose: print('OM10: computing synthetic magnitudes in the following bands: ', bands)
             # call a distance class constructor
             d = distances.Distance()
             # number of data in the table of calculated magnitude
-            totalEntrees = self.Nlenses*4.0
-            t = Table(np.arange(totalEntrees).reshape(self.Nlenses, 4),
+            totalEntrees = self.Nlenses*5.0
+            t = Table(np.arange(totalEntrees).reshape(self.Nlenses, 5),
                       names=bands)
      	    lens_count = 0
             total = len(self.sample)
-            Rfilter = tools.filterfromfile('r_SDSS')
+            Ufilter = tools.filterfromfile('u_MEGA')
      	    Gfilter = tools.filterfromfile('g_SDSS')
+            Rfilter = tools.filterfromfile('r_SDSS')
      	    Ifilter = tools.filterfromfile('i_SDSS')
      	    Zfilter = tools.filterfromfile('z_SDSS')
+     	    Yfilter = tools.filterfromfile('Y_UKIRT')
             if target == 'source':
                 # if target is lens, use appropriate SED
                 sed = tools.getSED('agn')
@@ -422,15 +426,19 @@ class DB(object):
                     RF_Rmag_app = tools.ABFilterMagnitude(Rfilter, sed, redshift) + offset
                     RF_Gmag_app = tools.ABFilterMagnitude(Gfilter, sed, redshift) + offset
                     RF_Zmag_app = tools.ABFilterMagnitude(Zfilter, sed, redshift) + offset
+                    RF_Umag_app = tools.ABFilterMagnitude(Ufilter, sed, redshift) + offset
+                    RF_Ymag_app = tools.ABFilterMagnitude(Yfilter, sed, redshift) + offset
                 elif target == 'lens':
                     veldisp = np.atleast_1d(lens['VELDISP'])
                     redshift = lens['ZLENS']
                     RF_Rmag_app, offset = self.calculate_rest_frame_r_magnitude(sed, veldisp, redshift, d)
                     # Get filters and calculate magnitudes for each filter:
+                    RF_Umag_app = tools.ABFilterMagnitude(Ufilter, sed, redshift) + offset + d.distance_modulus(redshift)
                     RF_Gmag_app = tools.ABFilterMagnitude(Gfilter, sed, redshift) + offset + d.distance_modulus(redshift)
                     RF_Imag_app = tools.ABFilterMagnitude(Ifilter, sed, redshift) + offset + d.distance_modulus(redshift)
                     RF_Zmag_app = tools.ABFilterMagnitude(Zfilter, sed, redshift) + offset + d.distance_modulus(redshift)
                 # Update the table with the magnitudes
+                t['u_SDSS'][lens_count] = RF_Umag_app                                                                                                                
                 t['r_SDSS'][lens_count] = RF_Rmag_app
                 t['g_SDSS'][lens_count] = RF_Gmag_app
                 t['i_SDSS'][lens_count] = RF_Imag_app
@@ -467,21 +475,30 @@ class DB(object):
         # fit gaussian function
         # fit 2nd degree polinomial function and normalize
         # weight = gaussian(x)/original(x)
+        import matplotlib.pyplot as plt
+        plt.ioff()
         self.Nlenses=len(self.sample)
         t = Table(np.arange(self.Nlenses).reshape(self.Nlenses, 1), names=('weight',), dtype=('f4',))
         n, bins, patches = plt.hist(self.sample['ZLENS'], bins='auto', normed = True)
         bin_centers = bins[:-1] + 0.5 * (bins[1:] - bins[:-1])
         # calculate polynomial
-        def bestFitHist(x, a, b, c):
-            return a*x*x*+b*x+c
+        def bestFitHist(x, a, b, c, d, e):
+            return a*x*x*x*x+b*x*x*x+c*x*x+d*x+e
         param, cov = scipy.optimize.curve_fit(bestFitHist, bin_centers, n)
+        xNumbers = np.arange(0, 3, 0.05)
+        yHist = bestFitHist(xNumbers, param[0], param[1], param[2], param[3], param[4])
         def gauss_function(x):
             return np.exp(-(x-mean)**2/(2*stdev**2))
+        yGauss = gauss_function(xNumbers)
         for (lens, lenscount) in zip(self.sample, range(len(self.sample))):
             redshift = lens['ZLENS']
-            histogram = bestFitHist(redshift, param[0], param[1], param[2])
+            histogram = bestFitHist(redshift, param[0], param[1], param[2], param[3], param[4])
             gauss = gauss_function(redshift)
             weight = gauss/histogram
+            # Here, rejection sampling
+            import random
+            if weight<random.random():
+                weight = 0
             t['weight'][lenscount] = weight
         self.sample.add_columns(t.columns.values())
 
