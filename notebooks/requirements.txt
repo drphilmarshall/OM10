@@ -1,4 +1,0 @@
-scipy
-astropy
-matplotlib
-sklearn
