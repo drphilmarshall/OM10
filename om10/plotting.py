@@ -3,51 +3,109 @@
 # Globally useful modules, imported here and then accessible by all
 # functions in this file:
 
-import matplotlib
-
 # Fonts, latex:
+import matplotlib
 matplotlib.rc('font',**{'family':'serif', 'serif':['TimesNewRoman']})
 matplotlib.rc('text', usetex=True)
+import corner
 
-import pylab,sys,numpy as np
+import pylab, sys, numpy as np
 
-import om10
 
 # ======================================================================
 
-def plot_lens(lens,saveImg=False):
+def plot_sample(sample, saveImg=False, fig=None, color='black',
+                parameters=('MAGI','IMSEP','VELDISP','ZLENS','ZSRC')):
+    """
+    Given an OM10 sample, make a corner plot of the required quantities.
 
-    USAGE = """
-    NAME
-      plot_lens
+    Parameters
+    ----------
+    parameters : str, tuple
+        Names of the lens parameters to plot
+    saveImg : bool
+        If true, save image with standardized name.
+    IQ : float
+        Image quality, for reference.
+    fig : matplotlib figure object
+        Overlay plot on an existing figure
 
-    PARAMETERS
-        saveImg : bool
-            Default to displaying image inline.
-            If true, save image with standardized name.
-
-    PURPOSE
-      Given an OM10 lens, compute some basic quantities,
-      then plot them on the sky.
-
-    COMMENTS
-
-    AUTHORS
-      This file is part of the OM10 project, distributed under the
-      GPL v2 by Phil Marshall (KIPAC).
-      Please cite: Oguri & Marshall (2010), MNRAS, 405, 2579.
-
-    HISTORY
-      2010-06-13 started as standalone script Marshall (KIPAC)
-      2013-09-27 adapted for OM10 project Marshall (KIPAC)
+    Returns
+    -------
+    fig : matplotlib figure object
+        New or updated figure
     """
 
-    # --------------------------------------------------------------------
+    features, labels = extract_features(sample, parameters)
 
-    # Force matplotlib to not use any Xwindows backend:
+    if fig is None:
+        fig = corner.corner(features, labels=labels, color=color, smooth=1.0)
+    else:
+        _   = corner.corner(features, labels=labels, color=color, smooth=1.0, fig=fig)
+
     if saveImg:
-        try: matplotlib.use('Agg')
-        except: pass
+        pngfile = "om10_sample.png"
+        pylab.savefig(pngfile)
+        print "OM10: Sample plot saved to file:", pngfile
+
+    return fig
+
+# ======================================================================
+
+def extract_features(x, names):
+    """
+    Given an OM10 table of lenses, extract the required parameters and
+    provide labels for them.
+
+    Parameters
+    ----------
+    x : Table
+        OM10 lens sample.
+    names : str, tuple
+        Names of features required.
+
+    Returns
+    -------
+    features : float, ndarray
+        Values of requested features, for each lens in the Table
+    labels : str, list
+        Corresponding axis labels
+    """
+
+    features = np.array([])
+    labels = []
+
+    p = len(names)
+    n = len(x)
+
+    for name in names:
+        features = np.append(features, x[name])
+        labels.append(axis_labels[name])
+
+    return features.reshape(p,n).transpose(), labels
+
+# ======================================================================
+
+def plot_lens(lens, saveImg=False, IQ=0.7):
+    """
+    Given an OM10 lens, compute some basic quantities
+    and use them to plot a cartoon visualization of the lens.
+
+    Parameters
+    ----------
+    saveImg : bool
+        If true, save image with standardized name.
+    IQ : float
+        Image quality, for reference.
+    """
+
+    # # Force matplotlib to not use any Xwindows backend:
+    # if saveImg:
+    #     try: matplotlib.use('Agg')
+    #     except: pass
+    # else:
+    #     try: matplotlib.use('TkAgg')
+    #     except: pass
 
     # Pull out data for ease of use:
     id = lens['LENSID'][0]
@@ -66,7 +124,7 @@ def plot_lens(lens,saveImg=False):
     q = 1.0 - lens['ELLIP'][0]
     phi = lens['PHIE'][0]
 
-    print "om10.plot_lens: plotting image configuration of lens ID ",id
+    print "OM10: Plotting image configuration of lens ID ",id
 
     # Compute image magnitudes:
     mi = np.zeros(nim)
@@ -74,7 +132,7 @@ def plot_lens(lens,saveImg=False):
     for i in range(nim):
       mi[i] = ms - 2.5*np.log10(np.abs(mui[i]))
       lfi[i] = 0.4*(24-mi[i])
-    print "om10.plot_lens: lens, image magnitudes:",md,mi
+    print "OM10: lens, image magnitudes:",md,mi
     lfd = 0.4*(24-md)
     # print "om10.plot_lens: lens, image log fluxes:",lfd,lfi
 
@@ -115,10 +173,10 @@ def plot_lens(lens,saveImg=False):
       cir = pylab.Circle((xi[i],yi[i]), radius=dm*lfi[i], alpha=0.2, fc='blue')
       pylab.gca().add_patch(cir)
 
-    # Circle to represent 0.7" seeing:
-    cir = pylab.Circle((1.5,-1.5), radius=0.7/2.0, alpha=0.1, fc='grey')
+    # Circle to represent seeing:
+    cir = pylab.Circle((1.5,-1.5), radius=IQ/2.0, alpha=0.1, fc='grey')
     pylab.gca().add_patch(cir)
-    text = '0.7" seeing'
+    text = '{:3.1f}" seeing'.format(IQ)
     pylab.annotate(text, (370,5), xytext=None, fontsize=14, \
                      xycoords='axes points',textcoords='axes points')
 
@@ -145,26 +203,18 @@ def plot_lens(lens,saveImg=False):
     if saveImg:
         pngfile = "om10_qso_ID="+str(id)+".png"
         pylab.savefig(pngfile)
-        print "om10.plot_lens: figure saved to file:",pngfile
-
-
-# ======================================================================
-
-if __name__ == '__main__':
-
-    db = om10.DB(catalog="data/qso_mock.fits")
-
-    # Pull out a specific lens and plot it:
-    id = 7176527
-    lens = db.get_lens(id)
-    om10.plot_lens(lens)
-
-    # Plot 3 random lenses and plot them:
-    lenses = db.select_random(maglim=21.4,area=30000.0,IQ=1.0,Nlens=3)
-    if lenses is not None:
-        for id in lenses.LENSID:
-            lens = db.get_lens(id)
-            om10.plot_lens(lens)
-
+        print "OM10: Lens plot saved to file:",pngfile
 
 # ======================================================================
+
+axis_labels = {}
+axis_labels['ZLENS'] = '$z_d$'
+axis_labels['VELDISP'] = '$\sigma_d$ / km/s'
+axis_labels['ELLIP'] = '$\epsilon_d$'
+axis_labels['PHIE'] = '$\phi_d$ / km/s'
+axis_labels['GAMMA'] = '$\gamma$'
+axis_labels['PHIG'] = '$\phi_{\gamma}$'
+axis_labels['ZSRC'] = '$z_s$'
+axis_labels['MAGI'] = '$i_3$'
+axis_labels['MAGI_IN'] = '$i_s$'
+axis_labels['IMSEP'] = '$\Delta \\theta$ / arcsec'
