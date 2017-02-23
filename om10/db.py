@@ -1,4 +1,4 @@
-# ======================================================================
+#  ======================================================================
 from __future__ import print_function
 
 import sys,os,subprocess
@@ -13,10 +13,15 @@ from sklearn import preprocessing
 
 from lenspop import population_functions, distances
 from stellarpop import tools
+import matplotlib.pyplot as plt
+import scipy
+import astropy.cosmology as cosmo
+import time
 
 import om10
 
 # ======================================================================
+
 
 class DB(object):
     """
@@ -44,7 +49,7 @@ class DB(object):
         if catalog is None:
             # Use the one that comes with the package:
             self.catalog = \
-                os.path.join(os.path.dirname(os.path.realpath(__file__)), '../data/qso_mock.fits')
+                os.path.join(os.path.dirname(os.path.realpath(__file__)), '/Users/Jenny/Desktop/om10fork/OM10/data/qso_mock.fits')
         else:
             self.catalog = os.path.expandvars(catalog)
 
@@ -60,6 +65,10 @@ class DB(object):
         """
         # Read in the catalog:
         self.lenses = Table.read(self.catalog, format='fits')
+        t = Table(np.arange(len(self.lenses)).reshape(len(self.lenses), 1), names=('weight',), dtype=('f4',))
+        for i in range(len(self.lenses)):
+            t['weight']=1;
+        self.lenses.add_columns(t.columns.values())
         if self.vb:
             print('OM10: Full db.lenses table contains {:d} systems'.format(len(self.lenses)))
 
@@ -103,6 +112,8 @@ class DB(object):
     def write_table(self,catalog):
         try: os.remove(catalog)
         except OSError: pass
+
+        self.sample = np.array(self.sample)
         if len(self.sample) == len(self.lenses):
             pyfits.writeto(catalog,self.lenses)
         else:
@@ -176,7 +187,6 @@ class DB(object):
         index = index[0:N]
 
         self.sample = sample[index]
-        self.Nlenses = len(self.sample)
 
         return
 
@@ -275,7 +285,7 @@ class DB(object):
 # ----------------------------------------------------------------------------
 
 # The paint method became really long, so needed to decompose this part out
-    def calculate_rest_frame_r_magnitude(self, sed, veldisp, redshift, d):
+    def calculate_rest_frame_r_magnitude(self, sed, veldisp, redshift, cosmo):
         """
         Computes rest-frame r-band magnitude of a lens galaxy
 
@@ -303,24 +313,23 @@ class DB(object):
         We don't need this function when painting quasars, because the OM10
         catalog contains a reliable i-band apparent magnitude for each source.
         """
-        # Call constructor. Name should be changed
-        lenspop_const = population_functions.LensPopulation_()
+        lenspop_constructor = population_functions.LensPopulation_()
         # Reference Frame Absolute R magnitude
-        RF_RMag_abs, _ = lenspop_const.EarlyTypeRelations(veldisp)
-        Rfilter = tools.filterfromfile('r_SDSS')
+        RF_RMag_abs, _ = lenspop_constructor.EarlyTypeRelations(veldisp)
         RMag_abs = tools.ABFilterMagnitude(Rfilter, sed, redshift)
-        Rmag_app = RMag_abs + d.distance_modulus(redshift)
+        distModulus = cosmo.distmod(redshift).value
+        Rmag_app = RMag_abs + distModulus
         offset_abs_app = RMag_abs - Rmag_app
         offset_RF_abs = RF_RMag_abs - RMag_abs
         RF_Rmag_app = RF_RMag_abs - offset_abs_app
-        return RF_Rmag_app, offset_RF_abs
+        return RF_Rmag_app, offset_RF_abs, distModulus
 
 # ----------------------------------------------------------------------------
 
     def paint(self, Nmax=None, verbose=False,
               lrg_input_cat='$OM10_DIR/data/LRGo.txt',
               qso_input_cat='$OM10_DIR/data/QSOo.txt',
-              synthetic=False, target='lens'):
+              synthetic=False):
         """
         Add new columns to the table, for the magnitudes in various filters.
 
@@ -388,51 +397,69 @@ class DB(object):
 
 
         if synthetic==True:
-
-            bands = ('r_SDSS', 'g_SDSS', 'i_SDSS', 'z_SDSS')
+            lens_count = 0
+            total = len(self.sample)
+            Rfilter = tools.filterfromfile('r_SDSS')
+            Ufilter = tools.filterfromfile('u_SDSS')
+            # sort the Ufilter array
+            Ufilterarg=np.sort(Ufilter[1])
+            Ufilter = (Ufilter[0], Ufilterarg, 1)
+            Gfilter = tools.filterfromfile('g_SDSS')
+            Ifilter = tools.filterfromfile('i_SDSS')
+            Zfilter = tools.filterfromfile('z_SDSS')
+            self.Nlenses=len(self.sample)
+            bands = ('r_SDSS_lens', 'g_SDSS_lens', 'i_SDSS_lens', 'z_SDSS_lens', 'u_SDSS_lens','r_SDSS_quasar', 'g_SDSS_quasar', 'i_SDSS_quasar', 'z_SDSS_quasar', 'u_SDSS_quasar')
             if verbose: print('OM10: computing synthetic magnitudes in the following bands: ', bands)
             # call a distance class constructor
             d = distances.Distance()
             # number of data in the table of calculated magnitude
-            totalEntrees = self.Nlenses*4.0
-            t = Table(np.arange(totalEntrees).reshape(self.Nlenses, 4),
+            totalEntrees = self.Nlenses*10.0
+            t = Table(np.arange(totalEntrees).reshape(self.Nlenses, 10),
                       names=bands)
-
-     	    lens_count = 0
-            total = len(self.sample)
-     	    Gfilter = tools.filterfromfile('g_SDSS')
-     	    Ifilter = tools.filterfromfile('i_SDSS')
-     	    Zfilter = tools.filterfromfile('z_SDSS')
-
+            Lsed = tools.getSED('BC_Z=1.0_age=9.000gyr')
+            Qsed = tools.getSED('agn')
+            from astropy.cosmology import FlatLambdaCDM
+            cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
+            lenspop_constructor = population_functions.LensPopulation_()
             for lens in self.sample:
-                # assign constants according to the type of the object
-                if target == 'source':
-                    # if target is lens, use appropriate SED
-                    sed = tools.getSED('agn')
-                    redshift = source_redshift
-                    # Hack: interpret OM10 i-band source magnitude as an
-                    # r-band magnitude...
-                    RF_Rmag_app, offset = lens['MAGI_IN'], 0.0
-                elif target == 'lens':
-                    # if target is galaxy, use appropriate SED
-                    sed = tools.getSED('BC_Z=1.0_age=9.000gyr')
-                    veldisp = np.atleast_1d(lens['VELDISP'])
-                    redshift = lens['ZLENS']
-                    RF_Rmag_app, offset = self.calculate_rest_frame_r_magnitude(sed, veldisp, redshift, d)
-
+                # calculate the quasar magnitude
+                redshift = lens['ZSRC']
+                RF_Imag_app_q = lens['MAGI_IN']
+                Qoffset = RF_Imag_app_q - tools.ABFilterMagnitude(Ifilter, Qsed, redshift)
+                RF_Rmag_app_q = tools.ABFilterMagnitude(Rfilter, Qsed, redshift) + Qoffset
+                RF_Gmag_app_q = tools.ABFilterMagnitude(Gfilter, Qsed, redshift) + Qoffset
+                RF_Zmag_app_q = tools.ABFilterMagnitude(Zfilter, Qsed, redshift) + Qoffset
+                print(redshift)
+                if(redshift<3.9):
+                    RF_Umag_app_q = tools.ABFilterMagnitude(Ufilter, Qsed, redshift) + Qoffset
+                elif(redshift>=3.9):
+                    RF_Umag_app_q = 0
+                # calculate the lens magnitude
+                veldisp = np.atleast_1d(lens['VELDISP'])
+                redshift = lens['ZLENS']
+                # Reference Frame Absolute R magnitude
+                RF_RMag_abs, _ = lenspop_constructor.EarlyTypeRelations(veldisp)
+                RMag_abs = tools.ABFilterMagnitude(Rfilter, Lsed, redshift)
+                distMod = cosmo.distmod(redshift).value
+                Rmag_app = RMag_abs + distMod
+                offset_abs_app = RMag_abs - Rmag_app
+                offset_RF_abs = RF_RMag_abs - RMag_abs
+                RF_Rmag_app = RF_RMag_abs - offset_abs_app
                 # Get filters and calculate magnitudes for each filter:
-                Gfilter = tools.filterfromfile('g_SDSS')
-                Ifilter = tools.filterfromfile('i_SDSS')
-                Zfilter = tools.filterfromfile('z_SDSS')
-                RF_Gmag_app = tools.ABFilterMagnitude(Gfilter, sed, redshift) + offset + d.distance_modulus(redshift)
-                RF_Imag_app = tools.ABFilterMagnitude(Ifilter, sed, redshift) + offset + d.distance_modulus(redshift)
-                RF_Zmag_app = tools.ABFilterMagnitude(Zfilter, sed, redshift) + offset + d.distance_modulus(redshift)
-
-                # Update the table with the magnitudes
-                t['r_SDSS'][lens_count] = RF_Rmag_app
-                t['g_SDSS'][lens_count] = RF_Gmag_app
-                t['i_SDSS'][lens_count] = RF_Imag_app
-                t['z_SDSS'][lens_count] = RF_Zmag_app
+                RF_Umag_app = tools.ABFilterMagnitude(Ufilter, Lsed, redshift) + offset_RF_abs + distMod
+                RF_Gmag_app = tools.ABFilterMagnitude(Gfilter, Lsed, redshift) + offset_RF_abs + distMod
+                RF_Imag_app = tools.ABFilterMagnitude(Ifilter, Lsed, redshift) + offset_RF_abs + distMod
+                RF_Zmag_app = tools.ABFilterMagnitude(Zfilter, Lsed, redshift) + offset_RF_abs + distMod
+                t['u_SDSS_lens'][lens_count] = RF_Umag_app
+                t['r_SDSS_lens'][lens_count] = RF_Rmag_app
+                t['g_SDSS_lens'][lens_count] = RF_Gmag_app
+                t['i_SDSS_lens'][lens_count] = RF_Imag_app
+                t['z_SDSS_lens'][lens_count] = RF_Zmag_app
+                t['u_SDSS_quasar'][lens_count] = RF_Umag_app_q
+                t['r_SDSS_quasar'][lens_count] = RF_Rmag_app_q
+                t['g_SDSS_quasar'][lens_count] = RF_Gmag_app_q
+                t['i_SDSS_quasar'][lens_count] = RF_Imag_app_q
+                t['z_SDSS_quasar'][lens_count] = RF_Zmag_app_q
                 lens_count = lens_count + 1
                 dot = np.mod(lens_count, total/np.min([79,total])) == 0
                 if verbose and dot:
@@ -443,7 +470,59 @@ class DB(object):
 
         return
 
+# ----------------------------------------------------------------------------
 
+
+
+    def gaussian_reweight(self, mean, stdev):
+        """
+        Add new columns to the table, for the magnitudes in various filters.
+
+        Parameters
+        ----------
+        mean : float
+            The mean of the parent gaussian distribution.
+        stdev : float
+            The standard deviation of the parent gaussian distribution.
+        Returns
+        ----------
+        None
+        Notes
+        -----
+        * This method adds one column named "weights" in the lens.sample.
+        """
+        # fit gaussian function
+        # fit 2nd degree polinomial function and normalize
+        # weight = gaussian(x)/original(x)
+        import matplotlib.pyplot as plt
+        plt.ioff()
+        self.Nlenses=len(self.sample)
+        t = Table(np.arange(self.Nlenses).reshape(self.Nlenses, 1), names=('weight',), dtype=('f4',))
+        n, bins, patches = plt.hist(self.sample['ZLENS'], bins='auto', normed = True)
+        bin_centers = bins[:-1] + 0.5 * (bins[1:] - bins[:-1])
+        # calculate polynomial
+        def bestFitHist(x, a, b, c, d, e):
+            return a*x*x*x*x+b*x*x*x+c*x*x+d*x+e
+        param, cov = scipy.optimize.curve_fit(bestFitHist, bin_centers, n)
+        xNumbers = np.arange(0, 3, 0.05)
+        yHist = bestFitHist(xNumbers, param[0], param[1], param[2], param[3], param[4])
+        def gauss_function(x):
+            return np.exp(-(x-mean)**2/(2*stdev**2))
+        yGauss = gauss_function(xNumbers)
+        for (lens, lenscount) in zip(self.sample, range(len(self.sample))):
+            redshift = lens['ZLENS']
+            histogram = bestFitHist(redshift, param[0], param[1], param[2], param[3], param[4])
+            gauss = gauss_function(redshift)
+            weight = gauss/histogram
+            # Here, rejection sampling
+            import random
+            if weight<random.random():
+                weight = 0
+            t['weight'][lenscount] = weight
+        self.sample.remove_columns(['weight'])
+        self.sample.add_columns(t.columns.values())
+
+        return
 
 # ======================================================================
 
