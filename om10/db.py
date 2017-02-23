@@ -433,7 +433,7 @@ class DB(object):
                 if(redshift<3.9):
                     RF_Umag_app_q = tools.ABFilterMagnitude(Ufilter, Qsed, redshift) + Qoffset
                 elif(redshift>=3.9):
-                    RF_Umag_app_q = 0
+                    RF_Umag_app_q = 99
                 # calculate the lens magnitude
                 veldisp = np.atleast_1d(lens['VELDISP'])
                 redshift = lens['ZLENS']
