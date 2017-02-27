@@ -429,7 +429,6 @@ class DB(object):
                 RF_Rmag_app_q = tools.ABFilterMagnitude(Rfilter, Qsed, redshift) + Qoffset
                 RF_Gmag_app_q = tools.ABFilterMagnitude(Gfilter, Qsed, redshift) + Qoffset
                 RF_Zmag_app_q = tools.ABFilterMagnitude(Zfilter, Qsed, redshift) + Qoffset
-                print(redshift)
                 if(redshift<3.9):
                     RF_Umag_app_q = tools.ABFilterMagnitude(Ufilter, Qsed, redshift) + Qoffset
                 elif(redshift>=3.9):
