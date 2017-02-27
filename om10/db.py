@@ -466,6 +466,7 @@ class DB(object):
 
             # Update the sample by adding the table of calculated magnitude
     	    self.sample.add_columns(t.columns.values())
+            self.lenses = self.sample.copy()
 
         return
 
