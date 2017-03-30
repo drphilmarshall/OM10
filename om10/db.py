@@ -49,7 +49,7 @@ class DB(object):
         if catalog is None:
             # Use the one that comes with the package:
             self.catalog = \
-                os.path.join(os.path.dirname(os.path.realpath(__file__)), '/Users/Jenny/Desktop/om10fork/OM10/data/qso_mock.fits')
+                os.path.join(os.path.dirname(os.path.realpath(__file__)),'../data/qso_mock.fits')
         else:
             self.catalog = os.path.expandvars(catalog)
 
