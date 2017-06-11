@@ -43,6 +43,12 @@ def plot_sample(sample, saveImg=False, fig=None, color='black',
     else:
         _   = corner.corner(features, labels=labels, color=color, smooth=1.0, fig=fig)
 
+    for ax in fig.axes:
+        for item in ([ax.xaxis.label, ax.yaxis.label]):
+            item.set_fontsize(20)
+        for item in (ax.get_xticklabels() + ax.get_yticklabels()):
+            item.set_fontsize(16)
+
     if saveImg:
         pngfile = "om10_sample.png"
         pylab.savefig(pngfile)
@@ -208,17 +214,17 @@ def plot_lens(lens, saveImg=False, IQ=0.7):
 # ======================================================================
 
 axis_labels = {}
-axis_labels['ZLENS'] = '$z_d$'
-axis_labels['VELDISP'] = '$\sigma_d$ / km/s'
-axis_labels['ELLIP'] = '$\epsilon_d$'
-axis_labels['PHIE'] = '$\phi_d$ / km/s'
+axis_labels['ZLENS'] = '$z_{\\rm d}$'
+axis_labels['VELDISP'] = '$\sigma_{\\rm d}$ / km/s'
+axis_labels['ELLIP'] = '$\epsilon_{\\rm d}$'
+axis_labels['PHIE'] = '$\phi_{\\rm d}$ / km/s'
 axis_labels['GAMMA'] = '$\gamma$'
 axis_labels['PHIG'] = '$\phi_{\gamma}$'
-axis_labels['ZSRC'] = '$z_s$'
+axis_labels['ZSRC'] = '$z_{\\rm s}$'
 axis_labels['MAGI'] = '$i_3$'
-axis_labels['MAGI_IN'] = '$i_s$'
+axis_labels['MAGI_IN'] = '$i_{\\rm s}$'
 axis_labels['IMSEP'] = '$\Delta \\theta$ / arcsec'
-axis_labels['i_SDSS'] = '$i_{\\rm SDSS}$ (AB mag)'
+axis_labels['i_SDSS_lens'] = '$i_{\\rm d}$ (AB mag)'
 axis_labels['ug'] = '$u-g$ color'
 axis_labels['gr'] = '$g-r$ color'
 axis_labels['ri'] = '$r-i$ color'
