@@ -49,7 +49,7 @@ class DB(object):
         if catalog is None:
             # Use the one that comes with the package:
             self.catalog = \
-                os.path.join(os.path.dirname(os.path.realpath(__file__)), '/Users/Jenny/Desktop/om10fork/OM10/data/qso_mock.fits')
+                os.path.join(os.path.dirname(os.path.realpath(__file__)),'../data/qso_mock.fits')
         else:
             self.catalog = os.path.expandvars(catalog)
 
@@ -472,8 +472,32 @@ class DB(object):
 
 # ----------------------------------------------------------------------------
 
+    def calculate_size(self, fitted_slope=0.318994087809, fitted_intercept=0.319531946588, std_err=0.277437718926):
+        """
+        Update 'Reff' column in the OM10 table to have realistic size.
+        
+        Parameters
+        ----------
+        fitted_slope:
+        The slope of the best-fitted linear regression line that has log10 of velocity dispersions in the x-axis and the log10 of effective radius in the y-axis.
+        fitted_intercept:
+        The intercept of the best-fitted linear regression line that has log10 of velocity dispersions in the x-axis and the natural log10 of effective radius in the y-axis.
+        std_err:
+        Standard error of the residuals of the data points.
+        """
 
+        print('Assuming slope of the fitted graph: ', fitted_slope, 'intercept: ', fitted_intercept, 'and standard error of the residuals :', std_err)
+        predict_size = lambda x: x*fitted_slope + fitted_intercept + np.random.normal(0, std_err)
+        for lens in self.sample:
+            log_size = predict_size(log10(lens['VELDISP']))
+            lens['REFF'] = np.power(10, log_size)
+            dist = distances.Distance()
+            lens_distance_kpc = dist.angular_diameter_distance(lens['ZLENS'])*1000 # returns megaparsecs
+            angle_radian = lens['REFF']/lens_distance_kpc
+            lens['REFF_T'] = angle_radian * 206265 # arcsec
+        self.lenses = self.sample.copy() # update the original lenses table too!
 
+# ----------------------------------------------------------------------------
     def gaussian_reweight(self, mean, stdev):
         """
         Add new columns to the table, for the magnitudes in various filters.
@@ -523,6 +547,21 @@ class DB(object):
         self.sample.add_columns(t.columns.values())
 
         return
+
+# ======================================================================
+
+    def noissify_quasars(self, stdev):
+        for lensCount in range(len(self.sample)):
+            noise = np.random.normal(scale=stdev)
+            self.sample[lensCount]['u_SDSS_quasar'] = self.sample[lensCount]['u_SDSS_quasar'] + noise
+            noise = np.random.normal(scale=stdev)
+            self.sample[lensCount]['r_SDSS_quasar'] = self.sample[lensCount]['r_SDSS_quasar'] + noise
+            noise = np.random.normal(scale=stdev)
+            self.sample[lensCount]['g_SDSS_quasar'] = self.sample[lensCount]['g_SDSS_quasar'] + noise
+            noise = np.random.normal(scale=stdev)
+            self.sample[lensCount]['z_SDSS_quasar'] = self.sample[lensCount]['z_SDSS_quasar'] + noise
+            noise = np.random.normal(scale=stdev)
+            self.sample[lensCount]['i_SDSS_quasar'] = self.sample[lensCount]['i_SDSS_quasar'] + noise
 
 # ======================================================================
 

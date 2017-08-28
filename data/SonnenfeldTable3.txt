@@ -1,3 +1,4 @@
+Name	Obs.date	Instrument	Slit	Width	Seeing	Exp.time	z_d	z_s	sigma	S/N	Resolution
 SL2SJ020833-071414	2011 Nov 29	LRIS	1.0	1.62	1.0	900	0.428	 ... 	295 +or- 27	17	150	
 SL2SJ021206-075528	2011 Jan 28	LRIS	0.7	1.62	0.6	2700	0.460	 ... 	257 +or- 25	28	120	
 SL2SJ021247-055552	2010 Oct 8	XSHOOTER	0.9	1.60	0.7	2800	0.750	2.74	273 +or- 22	22	47	
