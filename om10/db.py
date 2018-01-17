@@ -344,7 +344,7 @@ class DB(object):
         qso_input_cat : string
             Name of QSO catalog, if not using synthetic paint
         verbose : boolean
-           printprogress to stdout
+           print progress to stdout
 
         Notes
         -----
@@ -557,8 +557,8 @@ if __name__ == '__main__':
 #     lens = db.get_lens(id)
 
 #     if lens is not None:
-#         print"Lens ",id," has zd,zs = ",lens.ZLENS[0],lens.ZSRC[0]
-#         print"and has images with magnifications: ",lens.MAG[0]
+#         print("Lens ",id," has zd,zs = ",lens.ZLENS[0],lens.ZSRC[0])
+#         print("and has images with magnifications: ",lens.MAG[0])
 
 # # Look up one system:
 #
@@ -566,8 +566,8 @@ if __name__ == '__main__':
 #     lens = db.get_lens(id)
 #
 #     if lens is not None:
-#         print"Lens ",id," has zd,zs = ",lens.ZLENS[0],lens.ZSRC[0]
-#         print"and has images with magnifications: ",lens.MAG[0]
+#         print("Lens ",id," has zd,zs = ",lens.ZLENS[0],lens.ZSRC[0])
+#         print("and has images with magnifications: ",lens.MAG[0])
 
 # # To make a mock catalog of SDSS lenses:
 #
@@ -577,7 +577,7 @@ if __name__ == '__main__':
 # # To select a mock catalog of LSST lenses:
 #
 #     db.select_random(maglim=23.3,area=20000.0,IQ=0.75)
-#     printdb.Nlenses," LSST lenses, with zd = ",db.sample.ZLENS
+#     print(db.Nlenses," LSST lenses, with zd = ",db.sample.ZLENS)
 
 # # To make a mock catalog of KIDS lenses:
 #
@@ -598,7 +598,7 @@ if __name__ == '__main__':
 # To make a mock catalog of LSST lenses:
 
 #     db.select_random(maglim=21.5,area=20000.0,IQ=0.75)
-#     printdb.Nlenses," LSST lenses"
+#     print(db.Nlenses," LSST lenses")
     db.select_random(maglim=23.3,area=18000.0,IQ=0.75)
     print(db.Nlenses," LSST lenses")
 
@@ -684,11 +684,11 @@ if __name__ == '__main__':
 # # To select 10 lenses detectable with PS1 at each epoch:
 #
 #     db.select_random(maglim=21.4,area=30000.0,IQ=1.0,Nlens=10)
-#     printdb.Nlenses," representative PS1 3pi lenses, with zd = ", \
-#       db.sample.ZLENS
-#     # print"ugriz = ", \
+#     print(db.Nlenses," representative PS1 3pi lenses, with zd = ", \
+#       db.sample.ZLENS)
+#     # print("ugriz = ", \
 #     #   db.sample.uMAG_LRG,db.sample.gMAG_LRG,db.sample.rMAG_LRG, \
-#     #   db.sample.iMAG_LRG,db.sample.zMAG_LRG
+#     #   db.sample.iMAG_LRG,db.sample.zMAG_LRG)
 
 
 # 10-sigma detection in a single epoch?

@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from numpy import *
 '''
 Authors: Kai Liao, Adri Agnello (UCSB and UCLA)

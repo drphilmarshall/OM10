@@ -1,5 +1,7 @@
 # ======================================================================
 
+from __future__ import print_function
+
 import sys,os,subprocess,math
 import numpy as np
 import astropy.io.fits as pyfits
@@ -203,7 +205,7 @@ class Imager(object):
             # normalisation: central flux in nanomaggies/pixscale^2
 
             S0 = lgalflux/sernorm(reff,n=4.)  ### re-check!
-            print 'S0=',S0
+            print('S0=',S0)
             self.sbraw = flaser((self.x-self.center)/reff,(self.y-self.center)/reff,self.flat,self.pa,4.)
 
             # Convolve lens galaxy image with PSF:
@@ -226,17 +228,17 @@ class Imager(object):
             quasims=self.quasims
             qflux=self.qflux
             for kq in range(quasims):
-                print 'QSO image n.',kq+1
+                print('QSO image n.',kq+1)
                 ipos = int(self.qim[kq][0]/self.pixscale + self.newcen)
                 jpos = int(self.qim[kq][1]/self.pixscale + self.newcen)
-                print 'xi,yi=',ipos,',',jpos
+                print('xi,yi=',ipos,',',jpos)
                 imin = max(0,ipos-self.midpsf)
                 jmin = max(0,jpos-self.midpsf)
                 imax = min(self.canvas-1,ipos+self.midpsf)
                 jmax = min(self.canvas-1,jpos+self.midpsf)
                 dx = self.qim[kq][0]/self.pixscale + self.newcen - ipos
                 dy = self.qim[kq][1]/self.pixscale + self.newcen - jpos
-                print 'dx,dy=',dx,',',dy
+                print('dx,dy=',dx,',',dy)
                 # unif.dither and drift the psf grid by (dx,dy), for each quasar image
                 # can we avoid the nested loop?
                 for i1 in range(imin,imax):

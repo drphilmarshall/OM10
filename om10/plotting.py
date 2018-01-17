@@ -2,6 +2,7 @@
 
 # Globally useful modules, imported here and then accessible by all
 # functions in this file:
+from __future__ import print_function
 
 # Fonts, latex:
 import matplotlib
@@ -52,7 +53,7 @@ def plot_sample(sample, saveImg=False, fig=None, color='black',
     if saveImg:
         pngfile = "om10_sample.png"
         pylab.savefig(pngfile)
-        print "OM10: Sample plot saved to file:", pngfile
+        print("OM10: Sample plot saved to file:", pngfile)
 
     return fig
 
@@ -130,7 +131,7 @@ def plot_lens(lens, saveImg=False, IQ=0.7):
     q = 1.0 - lens['ELLIP'][0]
     phi = lens['PHIE'][0]
 
-    print "OM10: Plotting image configuration of lens ID ",id
+    print("OM10: Plotting image configuration of lens ID ",id)
 
     # Compute image magnitudes:
     mi = np.zeros(nim)
@@ -138,9 +139,9 @@ def plot_lens(lens, saveImg=False, IQ=0.7):
     for i in range(nim):
       mi[i] = ms - 2.5*np.log10(np.abs(mui[i]))
       lfi[i] = 0.4*(24-mi[i])
-    print "OM10: lens, image magnitudes:",md,mi
+    print("OM10: lens, image magnitudes:",md,mi)
     lfd = 0.4*(24-md)
-    # print "om10.plot_lens: lens, image log fluxes:",lfd,lfi
+    # print("om10.plot_lens: lens, image log fluxes:",lfd,lfi)
 
     # ------------------------------------------------------------------
     # Compute caustics and critical curves:
@@ -209,7 +210,7 @@ def plot_lens(lens, saveImg=False, IQ=0.7):
     if saveImg:
         pngfile = "om10_qso_ID="+str(id)+".png"
         pylab.savefig(pngfile)
-        print "OM10: Lens plot saved to file:",pngfile
+        print("OM10: Lens plot saved to file:",pngfile)
 
 # ======================================================================
 
