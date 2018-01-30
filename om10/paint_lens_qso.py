@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from numpy import *
 import math
 import os
@@ -50,11 +52,11 @@ i_q=20
 f=open(os.path.expandvars('$OM10_DIR/data/LRGo.txt'),'r')
 lrg=loadtxt(f)
 f.close()
-#print lrg[0,0],lrg.shape
+#print(lrg[0,0],lrg.shape)
 g=open(os.path.expandvars('$OM10_DIR/data/QSOo.txt'),'r')
 qso=loadtxt(g)
 g.close()
-#print qso[0,0],qso.shape
+#print(qso[0,0],qso.shape)
 
 ######
 zmin=0.
@@ -94,10 +96,10 @@ for i in range(lrg.shape[0]):
        #slrg[kz,ko]+=
 
 
-#print ng[16,9]
+#print(ng[16,9])
 #meang=mlrg[16,9,:]/ng[16,9]
-#print meang
-#print sqrt(slrg[16,9,:]/ng[16,9]-meang**2)
+#print(meang)
+#print(sqrt(slrg[16,9,:]/ng[16,9]-meang**2))
 
 ###########
 
@@ -112,11 +114,11 @@ for j in range(qso.shape[0]):
        sqso[kz,ko,:]+=qso[j,:]**2
 
 
-#print sum(nq)
+#print(sum(nq))
 
 #meanq=mqso[21,14,:]/nq[21,14]
-#print meanq
-#print sqrt(sqso[21,14,:]/nq[21,14]-meanq**2)
+#print(meanq)
+#print(sqrt(sqso[21,14,:]/nq[21,14]-meanq**2))
 
 
 
@@ -124,15 +126,15 @@ kz_g=math.ceil((z_om10_g-zmin)/step1)-1
 ko_g=math.ceil((sigma_om10-sming)/step2)-1
 if kz_g<50 and -1<ko_g<20 and ng[kz_g,ko_g]>0:
 
-   print 'non-zero'
+   print('non-zero')
    meang=mlrg[kz_g,ko_g,:]/ng[kz_g,ko_g]
    errorg=sqrt(slrg[kz_g,ko_g,:]/ng[kz_g,ko_g]-meang**2)
    om10g=meang+(-1.+2.*random.rand(14))*errorg
 else:
    if kz_g>49 or ko_g>19 or ko_g<0:
-      print 'out of the region!'
+      print('out of the region!')
    else:
-      print 'zero'
+      print('zero')
    meangg=zeros((50,20,14))
    errorgg=zeros((50,20,14))
    disg=zeros((50,20))
@@ -154,9 +156,9 @@ else:
            werrorg += errorgg[i,j,:]*e**(-disg[i,j])
 
    om10g=wmeang/wg+(-1.+2.*random.rand(14))*werrorg/wg
-print "Lens Properties"
-print "redshift  sigma  g Reff  r   i    z   g mag   r mag   i mag   z   w1    w2    w3   w4"
-print om10g
+print("Lens Properties")
+print("redshift  sigma  g Reff  r   i    z   g mag   r mag   i mag   z   w1    w2    w3   w4")
+print(om10g)
 
 
 ######################################3
@@ -166,15 +168,15 @@ kz_q=math.ceil((z_om10_q-zmin)/step3)-1
 ko_q=math.ceil((i_q-imin)/step4)-1
 if kz_q<50 and -1<ko_q<20 and nq[kz_q,ko_q]>0:
 
-   print 'non-zero'
+   print('non-zero')
    meanq=mqso[kz_q,ko_q,:]/nq[kz_q,ko_q]
    errorq=sqrt(sqso[kz_q,ko_q,:]/nq[kz_q,ko_q]-meanq**2)
    om10q=meanq+(-1.+2.*random.rand(9))*errorq
 else:
    if kz_q>49 or ko_q>19 or ko_q<0:
-      print 'out of the region!'
+      print('out of the region!')
    else:
-      print 'zero'
+      print('zero')
    meanqq=zeros((50,20,9))
    errorqq=zeros((50,20,9))
    disq=zeros((50,20))
@@ -196,6 +198,6 @@ else:
            werrorq += errorqq[i,j,:]*e**(-disq[i,j])
 
    om10q=wmeanq/wq+(-1.+2.*random.rand(9))*werrorq/wq
-print "QSO Properties"
-print "redshift   g     r     i     z     w1      w2       w3     w4"
-print om10q
+print("QSO Properties")
+print("redshift   g     r     i     z     w1      w2       w3     w4")
+print(om10q)
