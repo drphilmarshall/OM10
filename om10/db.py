@@ -3,7 +3,8 @@ from __future__ import print_function
 
 import sys,os,subprocess
 import numpy as np
-import os, urllib
+import os
+from six.moves import urllib
 from numpy import *
 import math
 from astropy.table import Table, hstack
@@ -101,7 +102,7 @@ class DB(object):
         self.catalog = url.split('/')[-1]
         if self.vb: print('OM10: Looking for local catalog {:s}'.format(self.catalog))
         if not os.path.isfile(self.catalog):
-            urllib.urlretrieve(url, self.catalog)
+            urllib.request.urlretrieve(url, self.catalog)
             if self.vb: print('OM10: Downloaded catalog: {:s}'.format(self.catalog))
         else:
             if self.vb: print('OM10: File already exists, no need to download.')
@@ -465,7 +466,7 @@ class DB(object):
                     print('.', end="")
 
             # Update the sample by adding the table of calculated magnitude
-    	    self.sample.add_columns(t.columns.values())
+            self.sample.add_columns(t.columns.values())
             self.lenses = self.sample.copy()
 
         return
