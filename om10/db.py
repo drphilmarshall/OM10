@@ -183,7 +183,7 @@ class DB(object):
             N = len(sample)
 
         # Shuffle sample and return only this, or the required, number of systems:
-        index = range(len(sample))
+        index = np.arange(len(sample))
         np.random.shuffle(index)
         index = index[0:N]
 
